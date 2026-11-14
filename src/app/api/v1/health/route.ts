@@ -10,5 +10,6 @@ export async function GET() {
     phase: 6,
     time: new Date().toISOString(),
     db: db ? "connected" : "disconnected",
+    mongoConfigured: Boolean(process.env.MONGODB_URI),
   });
 }

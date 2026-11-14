@@ -80,9 +80,9 @@ export async function connectDb(): Promise<typeof mongoose> {
         bufferCommands: false,
         maxPoolSize: 10,
         minPoolSize: 1,
-        // Windows often stalls on IPv6 DNS for mongodb+srv before falling back.
-        family: 4,
-        serverSelectionTimeoutMS: 8000,
+        // Windows DNS often stalls on IPv6 for mongodb+srv. Vercel needs default family.
+        ...(process.platform === "win32" ? { family: 4 as const } : {}),
+        serverSelectionTimeoutMS: process.env.VERCEL ? 12000 : 8000,
       });
     })().catch((err) => {
       c.promise = null;
