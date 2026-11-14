@@ -43,8 +43,8 @@ const STYLES: Record<string, string> = {
 
 export function FooterSocialLinks({ whatsapp }: { whatsapp?: string }) {
   const wa = (whatsapp || process.env.NEXT_PUBLIC_WHATSAPP || "").replace(/\D/g, "");
-  const facebook = process.env.NEXT_PUBLIC_FACEBOOK || "https://www.facebook.com/agilesole";
-  const instagram = process.env.NEXT_PUBLIC_INSTAGRAM || "https://www.instagram.com/agilesole";
+  const facebook = process.env.NEXT_PUBLIC_FACEBOOK || "https://www.facebook.com/sahil.mazeem";
+  const instagram = process.env.NEXT_PUBLIC_INSTAGRAM || "https://www.instagram.com/agilesole/";
   const tiktok = process.env.NEXT_PUBLIC_TIKTOK || "https://www.tiktok.com/@agilesole";
 
   const items = [
