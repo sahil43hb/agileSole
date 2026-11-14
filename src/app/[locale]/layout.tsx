@@ -64,8 +64,8 @@ export default async function LocaleLayout({ children, params }: Props) {
   setRequestLocale(locale);
   const messages = await getMessages();
   const dir = locale === "ur" ? "rtl" : "ltr";
-  const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP || "";
-  const { logo } = await getPublicSettings();
+  const { logo, whatsapp: storeWhatsapp } = await getPublicSettings();
+  const whatsapp = storeWhatsapp || process.env.NEXT_PUBLIC_WHATSAPP || "";
 
   return (
     <div dir={dir} lang={locale} className={locale === "ur" ? "font-urdu min-h-dvh" : "min-h-dvh"}>

@@ -10,7 +10,7 @@ import { DEFAULT_LOGO } from "@/lib/brand-icon";
 function AdminLoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const [email, setEmail] = useState("ivan.p@example.net");
+  const [email, setEmail] = useState("sahilmubeen30@gmail.com");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");

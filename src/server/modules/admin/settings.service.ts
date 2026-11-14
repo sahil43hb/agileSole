@@ -4,8 +4,8 @@ import { getSetting, setSetting } from "@/server/models/setting";
 export const STORE_DEFAULTS = {
   name: "Agile Sole",
   city: "Gujranwala",
-  whatsapp: "",
-  email: "hello@agilesole.pk",
+  whatsapp: "923069158103",
+  email: "sahilmubeen30@gmail.com",
   ntn: "",
   logo: "/favicon.png",
   returnDays: 14,
@@ -71,6 +71,7 @@ export async function getPublicSettings() {
     name: all.store.name,
     logo: all.store.logo || "/favicon.png",
     whatsapp: all.store.whatsapp,
+    email: all.store.email,
     ga4Id: all.analytics.ga4Id,
     metaPixelId: all.analytics.metaPixelId,
     payments: all.payments,

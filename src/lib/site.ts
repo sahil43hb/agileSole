@@ -18,6 +18,8 @@ export function organizationJsonLd() {
     url,
     slogan: BRAND.tagline.en,
     logo: `${url}/favicon.png`,
+    email: "sahilmubeen30@gmail.com",
+    telephone: "+923069158103",
     address: {
       "@type": "PostalAddress",
       addressLocality: BRAND.city,
