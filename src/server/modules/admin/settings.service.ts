@@ -66,15 +66,28 @@ export async function saveAllSettings(input: {
 }
 
 export async function getPublicSettings() {
-  const all = await getAllSettings();
-  return {
-    name: all.store.name,
-    logo: all.store.logo || "/favicon.png",
-    whatsapp: all.store.whatsapp,
-    email: all.store.email,
-    ga4Id: all.analytics.ga4Id,
-    metaPixelId: all.analytics.metaPixelId,
-    payments: all.payments,
-    couriers: all.couriers,
-  };
+  try {
+    const all = await getAllSettings();
+    return {
+      name: all.store.name,
+      logo: all.store.logo || "/favicon.png",
+      whatsapp: all.store.whatsapp || process.env.NEXT_PUBLIC_WHATSAPP || STORE_DEFAULTS.whatsapp,
+      email: all.store.email,
+      ga4Id: all.analytics.ga4Id,
+      metaPixelId: all.analytics.metaPixelId,
+      payments: all.payments,
+      couriers: all.couriers,
+    };
+  } catch {
+    return {
+      name: STORE_DEFAULTS.name,
+      logo: STORE_DEFAULTS.logo,
+      whatsapp: process.env.NEXT_PUBLIC_WHATSAPP || STORE_DEFAULTS.whatsapp,
+      email: STORE_DEFAULTS.email,
+      ga4Id: "",
+      metaPixelId: "",
+      payments: PAYMENTS_DEFAULTS,
+      couriers: COURIERS_DEFAULTS,
+    };
+  }
 }

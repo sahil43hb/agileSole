@@ -4,6 +4,8 @@ import "./admin.css";
 import { getPublicSettings } from "@/server/modules/admin/settings.service";
 import { brandIconHref } from "@/lib/brand-icon";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   const { logo } = await getPublicSettings();
   const icon = brandIconHref(logo);

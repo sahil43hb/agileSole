@@ -63,6 +63,10 @@ async function ensureDevData() {
 }
 
 export async function connectDb(): Promise<typeof mongoose> {
+  if (process.env.NEXT_PHASE === "phase-production-build") {
+    throw new Error("Mongo is not used during next build");
+  }
+
   const c = cache();
   if (c.conn) {
     if (ensureDevDataPromise) await ensureDevDataPromise;
@@ -80,7 +84,10 @@ export async function connectDb(): Promise<typeof mongoose> {
         family: 4,
         serverSelectionTimeoutMS: 8000,
       });
-    })();
+    })().catch((err) => {
+      c.promise = null;
+      throw err;
+    });
   }
 
   c.conn = await c.promise;
