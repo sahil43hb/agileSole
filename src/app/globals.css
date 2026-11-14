@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-paper text-ink antialiased;
+}
+
+.font-urdu {
+  font-family: var(--font-nastaliq), "Noto Nastaliq Urdu", serif;
+  line-height: 2;
+}
+
+::selection {
+  background: #c8ebd8;
+}
+
+input,
+select,
+textarea {
+  @apply outline-none text-start;
+}
+
+button {
+  @apply outline-none;
+}
+
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] select {
+  text-align: start;
+}
+
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  @apply ring-2 ring-brand ring-offset-2 ring-offset-paper;
+}
+
+@layer components {
+  .btn-primary,
+  button.bg-brand,
+  a.bg-brand {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl text-center text-sm font-semibold tracking-tight text-white transition duration-150;
+    background-color: #1fa64a;
+    box-shadow: 0 10px 22px rgba(31, 166, 74, 0.22);
+  }
+
+  .btn-primary:hover:not(:disabled),
+  button.bg-brand:hover:not(:disabled),
+  a.bg-brand:hover {
+    background-color: #15803d;
+    box-shadow: 0 12px 28px rgba(21, 128, 61, 0.3);
+  }
+
+  .btn-primary:active:not(:disabled),
+  button.bg-brand:active:not(:disabled),
+  a.bg-brand:active {
+    transform: translateY(1px);
+  }
+
+  .btn-primary:disabled,
+  button.bg-brand:disabled {
+    @apply cursor-not-allowed opacity-60;
+    box-shadow: none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-paper-line bg-white px-5 text-sm font-medium text-ink transition duration-150 hover:border-ink/15 hover:bg-[#f7f8f7];
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 text-sm font-medium text-ink-muted transition hover:bg-[#f4f7f5] hover:text-ink;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60;
+  }
+}
+
+.search-field {
+  position: relative;
+  display: block;
+}
+
+.search-field-icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #8a8a8a;
+  z-index: 1;
+}
+
+.search-field input {
+  box-sizing: border-box;
+  padding-left: 44px !important;
+  padding-right: 14px !important;
+}
+
+[dir="rtl"] .search-field-icon {
+  left: auto;
+  right: 14px;
+}
+
+[dir="rtl"] .search-field input {
+  padding-left: 14px !important;
+  padding-right: 44px !important;
+}

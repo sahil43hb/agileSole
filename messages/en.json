@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "title": "Agile Sole — Every Step a Perfect Beat",
+    "description": "Family footwear from Gujranwala. Sneakers, comfort sandals, and kids pairs. Cash on delivery across Pakistan."
+  },
+  "nav": {
+    "men": "Men",
+    "women": "Women",
+    "kids": "Kids",
+    "comfort": "Comfort",
+    "newIn": "New in",
+    "sale": "Sale",
+    "search": "Search shoes, size, style",
+    "account": "Account",
+    "wishlist": "Wishlist",
+    "cart": "Cart",
+    "shop": "Shop",
+    "home": "Home",
+    "help": "Help",
+    "track": "Track order"
+  },
+  "announce": "Cash on delivery across Pakistan · Easy size exchange",
+  "hero": {
+    "kicker": "Agile Sole · Gujranwala",
+    "title": "Every Step a Perfect Beat",
+    "body": "Athletic sneakers and family comfort sandals, made to move with you. One pair at a time.",
+    "cta": "Shop the collection",
+    "secondary": "Size guide"
+  },
+  "trust": {
+    "cod": "Cash on delivery",
+    "ship": "Nationwide delivery",
+    "exchange": "Easy size exchange",
+    "fit": "Fit & size help"
+  },
+  "shopBy": "Shop by category",
+  "featured": "New arrivals",
+  "story": {
+    "title": "Stepping up your footwear game",
+    "body": "Agile Sole is a family footwear house in Gujranwala — sneakers for the street and comfort for the whole home."
+  },
+  "coming": "Pairs are being photographed. Browse categories or check back after the next drop.",
+  "footer": {
+    "shop": "Shop",
+    "help": "Help",
+    "legal": "Legal",
+    "about": "About",
+    "contact": "Contact",
+    "faq": "FAQ",
+    "shipping": "Shipping & returns",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "cookies": "Cookies",
+    "sizeGuide": "Size guide",
+    "rights": "© {year} Agile Sole. All rights reserved.",
+    "location": "Gujranwala, Pakistan",
+    "cod": "Cash on delivery"
+  },
+  "account": {
+    "loginTitle": "Login with phone or email",
+    "loginBody": "We send a one-time code. No password required.",
+    "identifier": "Phone or email",
+    "sendCode": "Send code",
+    "code": "6-digit code",
+    "verify": "Verify",
+    "devHint": "In development the code is printed in the server terminal."
+  },
+  "admin": {
+    "login": "Staff login",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in"
+  },
+  "common": {
+    "language": "Language",
+    "english": "English",
+    "urdu": "اردو"
+  }
+}

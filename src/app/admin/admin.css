@@ -1,0 +1,121 @@
+.admin-app {
+  --admin-bg: #f3f5f4;
+  --admin-line: #e7ebe8;
+}
+
+.admin-app input:focus-visible,
+.admin-app button:focus-visible,
+.admin-app a:focus-visible,
+.admin-app select:focus-visible,
+.admin-app textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(31, 166, 74, 0.3);
+}
+
+.admin-main h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.admin-main table.variant-grid {
+  overflow: visible;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.admin-main table {
+  width: 100%;
+  overflow: hidden;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 1rem;
+  border: 1px solid var(--admin-line);
+  background: #fff;
+  text-align: left;
+  font-size: 0.875rem;
+  box-shadow: 0 1px 2px rgba(17, 17, 17, 0.04);
+}
+
+.admin-main thead th {
+  background: #f7f8f7;
+  padding: 0.75rem 1rem;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8a8a8a;
+}
+
+.admin-main tbody td {
+  border-top: 1px solid var(--admin-line);
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+
+.admin-main tbody tr:hover td {
+  background: #fafcfb;
+}
+
+.admin-main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.admin-search-input),
+.admin-main select,
+.admin-main textarea {
+  border-radius: 0.75rem;
+  border: 1px solid var(--admin-line);
+  background: #fff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  box-shadow: 0 1px 2px rgba(17, 17, 17, 0.04);
+}
+
+.admin-main input.admin-search-input {
+  border-radius: 0.75rem;
+  border: 1px solid var(--admin-line);
+  background: #fff;
+  padding: 0.5rem 0.75rem 0.5rem 2.75rem;
+  font-size: 0.875rem;
+  box-shadow: 0 1px 2px rgba(17, 17, 17, 0.04);
+}
+
+.admin-main .row-btn-edit {
+  border-radius: 999px;
+  background-color: #1fa64a;
+  box-shadow: 0 6px 14px rgba(31, 166, 74, 0.22);
+}
+
+.admin-main .row-btn-edit:hover {
+  background-color: #15803d;
+}
+
+.admin-main button.bg-brand,
+.admin-main a.bg-brand,
+.admin-main .btn-primary {
+  border-radius: 1rem;
+  font-weight: 600;
+  box-shadow: 0 10px 22px rgba(31, 166, 74, 0.22);
+}
+
+.admin-main button.bg-white {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-main button.bg-white:hover:not(:disabled) {
+  background: #f4f7f5;
+}
+
+.admin-main a[class*="border"],
+.admin-main button[class*="border"] {
+  border-radius: 0.75rem;
+}
+
+.admin-sidebar::-webkit-scrollbar,
+.admin-main::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb,
+.admin-main::-webkit-scrollbar-thumb {
+  background: #d5ddd7;
+  border-radius: 99px;
+}

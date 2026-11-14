@@ -1,0 +1,317 @@
+"use client";
+
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ImagePlus, X } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/ui";
+import { LOGO_SRC } from "@/components/brand/logo";
+import { notifyLogoChanged } from "@/lib/brand-icon";
+
+const PAYMENT_FLAGS = [
+  { key: "cod", label: "Cash on delivery", hint: "Live now — shoppers pay when the pair arrives.", locked: true },
+  { key: "jazzcash", label: "JazzCash", hint: "Milestone 2", locked: false },
+  { key: "easypaisa", label: "EasyPaisa", hint: "Milestone 2", locked: false },
+  { key: "cards", label: "Cards", hint: "Milestone 2", locked: false },
+  { key: "stripe", label: "Stripe", hint: "Milestone 2", locked: false },
+] as const;
+
+const COURIER_FLAGS = [
+  { key: "manual", label: "Manual CN / tracking", hint: "Live now — enter courier numbers by hand.", locked: true },
+  { key: "tcsApi", label: "TCS API", hint: "Milestone 2", locked: false },
+  { key: "leopardApi", label: "Leopard API", hint: "Milestone 2", locked: false },
+  { key: "postex", label: "PostEx API", hint: "Milestone 2", locked: false },
+] as const;
+
+const field =
+  "mt-1.5 h-11 w-full rounded-xl border border-[#e7ebe8] bg-[#f7f8f7] px-3.5 text-sm text-ink outline-none transition placeholder:text-ink-faint focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20";
+const card = "space-y-4 rounded-2xl border border-[var(--admin-line)] bg-white p-5 shadow-sm sm:p-6";
+const label = "block text-[13px] font-medium text-ink-muted";
+
+function Toggle({
+  on,
+  locked,
+  onClick,
+}: {
+  on: boolean;
+  locked?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={locked}
+      onClick={onClick}
+      className={`h-5 w-9 shrink-0 rounded-full p-0.5 disabled:opacity-70 ${on ? "bg-brand" : "bg-[#d5ddd7]"}`}
+      aria-pressed={on}
+    >
+      <span className={`block h-4 w-4 rounded-full bg-white transition ${on ? "translate-x-4" : ""}`} />
+    </button>
+  );
+}
+
+export default function SettingsPage() {
+  const router = useRouter();
+  const [store, setStore] = useState({
+    name: "Agile Sole",
+    city: "Gujranwala",
+    whatsapp: "",
+    email: "",
+    ntn: "",
+    logo: LOGO_SRC,
+    returnDays: 14,
+    maxCod: 50000,
+    minOrder: 0,
+    highValue: 15000,
+  });
+  const [analytics, setAnalytics] = useState({ ga4Id: "", metaPixelId: "" });
+  const [payments, setPayments] = useState({
+    cod: true,
+    jazzcash: false,
+    easypaisa: false,
+    cards: false,
+    stripe: false,
+  });
+  const [couriers, setCouriers] = useState({
+    manual: true,
+    tcsApi: false,
+    leopardApi: false,
+    postex: false,
+  });
+  const [saved, setSaved] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [logoError, setLogoError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/v1/admin/settings")
+      .then((r) => r.json())
+      .then((j) => {
+        if (!j.ok) return;
+        setStore((s) => ({ ...s, ...j.data.store, logo: j.data.store?.logo || LOGO_SRC }));
+        setAnalytics((s) => ({ ...s, ...j.data.analytics }));
+        setPayments((s) => ({ ...s, ...j.data.payments }));
+        setCouriers((s) => ({ ...s, ...j.data.couriers }));
+      });
+  }, []);
+
+  async function uploadLogo(file: File) {
+    setLogoError("");
+    const body = new FormData();
+    body.set("file", file);
+    const res = await fetch("/api/v1/admin/media", { method: "POST", body });
+    const json = await res.json();
+    if (!json.ok) {
+      setLogoError(json.error?.message || "Could not upload logo");
+      return;
+    }
+    const url = json.data.url as string;
+    setStore((s) => ({ ...s, logo: url }));
+    notifyLogoChanged(url);
+  }
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setSaved("");
+    const res = await fetch("/api/v1/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        store: { ...store, logo: store.logo || LOGO_SRC },
+        analytics,
+        payments: { ...payments, cod: true },
+        couriers: { ...couriers, manual: true },
+      }),
+    });
+    const json = await res.json();
+    setBusy(false);
+    if (json.ok) {
+      notifyLogoChanged(store.logo || LOGO_SRC);
+      router.refresh();
+      setSaved("Settings saved");
+    } else {
+      setSaved(json.error?.message || "Could not save");
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="space-y-5">
+      <AdminPageHeader
+        title="Store settings"
+        description="Brand, contact, COD limits, and what goes live next."
+        actions={
+          <button
+            type="submit"
+            disabled={busy}
+            className="inline-flex h-11 items-center rounded-xl bg-brand px-5 text-sm font-medium text-white disabled:opacity-60"
+          >
+            {busy ? "Saving…" : "Save settings"}
+          </button>
+        }
+      />
+      {saved ? <p className="rounded-xl bg-brand-mist px-3 py-2 text-sm text-brand-dark">{saved}</p> : null}
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-6">
+          <section className={card}>
+            <h2 className="text-sm font-semibold tracking-tight">Company logo</h2>
+            <p className="text-sm text-ink-muted">Shown on the store header, footer, and this workspace. PNG or SVG with a clear mark works best.</p>
+            <div className="flex flex-wrap items-center gap-5">
+              <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border border-[var(--admin-line)] bg-[#f7f8f7] p-3">
+                {store.logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={store.logo} alt="Company logo" className="max-h-full max-w-full object-contain" />
+                ) : (
+                  <ImagePlus className="h-6 w-6 text-ink-faint" />
+                )}
+              </div>
+              <div className="min-w-[16rem] flex-1 space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex h-10 cursor-pointer items-center rounded-xl border border-[var(--admin-line)] bg-white px-4 text-sm font-medium">
+                    Upload logo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void uploadLogo(file);
+                      }}
+                    />
+                  </label>
+                  {store.logo && store.logo !== LOGO_SRC ? (
+                    <button
+                      type="button"
+                      className="inline-flex h-10 items-center gap-1 rounded-xl border border-[var(--admin-line)] bg-white px-3 text-sm text-ink-muted"
+                      onClick={() => setStore({ ...store, logo: LOGO_SRC })}
+                    >
+                      <X className="h-4 w-4" />
+                      Use default
+                    </button>
+                  ) : null}
+                </div>
+                <input
+                  className={`${field} mt-0`}
+                  value={store.logo}
+                  onChange={(e) => setStore({ ...store, logo: e.target.value })}
+                  placeholder="/favicon.png"
+                />
+                {logoError ? <p className="text-sm text-red-700">{logoError}</p> : null}
+              </div>
+            </div>
+          </section>
+
+          <section className={card}>
+            <h2 className="text-sm font-semibold tracking-tight">Store profile</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className={`${label} sm:col-span-2`}>
+                Store name
+                <input className={field} value={store.name} onChange={(e) => setStore({ ...store, name: e.target.value })} />
+              </label>
+              <label className={label}>
+                City
+                <input className={field} value={store.city} onChange={(e) => setStore({ ...store, city: e.target.value })} />
+              </label>
+              <label className={label}>
+                WhatsApp
+                <input className={field} value={store.whatsapp} onChange={(e) => setStore({ ...store, whatsapp: e.target.value })} placeholder="92300…" />
+              </label>
+              <label className={label}>
+                Email
+                <input type="email" className={field} value={store.email} onChange={(e) => setStore({ ...store, email: e.target.value })} />
+              </label>
+              <label className={label}>
+                NTN
+                <input className={field} value={store.ntn} onChange={(e) => setStore({ ...store, ntn: e.target.value })} placeholder="Optional tax number" />
+              </label>
+            </div>
+          </section>
+
+          <section className={card}>
+            <h2 className="text-sm font-semibold tracking-tight">Orders & COD</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className={label}>
+                Return window (days)
+                <input type="number" min={0} className={field} value={store.returnDays} onChange={(e) => setStore({ ...store, returnDays: Number(e.target.value) })} />
+              </label>
+              <label className={label}>
+                Min order (PKR)
+                <input type="number" min={0} className={field} value={store.minOrder} onChange={(e) => setStore({ ...store, minOrder: Number(e.target.value) })} />
+              </label>
+              <label className={label}>
+                Max COD (PKR)
+                <input type="number" min={0} className={field} value={store.maxCod} onChange={(e) => setStore({ ...store, maxCod: Number(e.target.value) })} />
+              </label>
+              <label className={label}>
+                High-value order (PKR)
+                <input type="number" min={0} className={field} value={store.highValue} onChange={(e) => setStore({ ...store, highValue: Number(e.target.value) })} />
+              </label>
+            </div>
+          </section>
+
+          <section className={card}>
+            <h2 className="text-sm font-semibold tracking-tight">Analytics</h2>
+            <p className="text-sm text-ink-muted">Scripts load only after the shopper accepts marketing cookies.</p>
+            <label className={label}>
+              GA4 measurement ID
+              <input className={field} value={analytics.ga4Id} onChange={(e) => setAnalytics({ ...analytics, ga4Id: e.target.value })} placeholder="G-XXXXXXXX" />
+            </label>
+            <label className={label}>
+              Meta Pixel ID
+              <input className={field} value={analytics.metaPixelId} onChange={(e) => setAnalytics({ ...analytics, metaPixelId: e.target.value })} />
+            </label>
+            <p className="text-sm text-ink-muted">
+              Catalog feeds:{" "}
+              <a className="font-medium text-brand-dark" href="/api/v1/feeds/google">
+                Google
+              </a>
+              {" · "}
+              <a className="font-medium text-brand-dark" href="/api/v1/feeds/meta">
+                Meta
+              </a>
+            </p>
+          </section>
+        </div>
+
+        <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+          <section className={card}>
+            <h2 className="text-sm font-semibold tracking-tight">Payments</h2>
+            <p className="text-sm text-ink-muted">COD is on. Wallets and cards wait for Milestone 2.</p>
+            <ul className="space-y-3">
+              {PAYMENT_FLAGS.map((flag) => (
+                <li key={flag.key} className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">{flag.label}</p>
+                    <p className="text-xs text-ink-faint">{flag.hint}</p>
+                  </div>
+                  <Toggle
+                    on={Boolean(payments[flag.key as keyof typeof payments])}
+                    locked={flag.locked}
+                    onClick={() => setPayments({ ...payments, [flag.key]: !payments[flag.key as keyof typeof payments] } as typeof payments)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section className={card}>
+            <h2 className="text-sm font-semibold tracking-tight">Couriers</h2>
+            <ul className="space-y-3">
+              {COURIER_FLAGS.map((flag) => (
+                <li key={flag.key} className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">{flag.label}</p>
+                    <p className="text-xs text-ink-faint">{flag.hint}</p>
+                  </div>
+                  <Toggle
+                    on={Boolean(couriers[flag.key as keyof typeof couriers])}
+                    locked={flag.locked}
+                    onClick={() => setCouriers({ ...couriers, [flag.key]: !couriers[flag.key as keyof typeof couriers] } as typeof couriers)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </form>
+  );
+}
