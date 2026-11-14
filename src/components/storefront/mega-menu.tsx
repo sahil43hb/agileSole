@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
@@ -24,7 +25,7 @@ const COLLECTION_ART: Record<string, string> = {
   "new-arrivals": "/catalog/banner-new-in.jpg",
 };
 
-function ShopLink({ href, children }: { href: string; children: string }) {
+function ShopLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link
       href={href}
@@ -98,7 +99,7 @@ export function MegaMenu({
                         </p>
                         <ul className="mt-3">
                           <li>
-                            <ShopLink href={`/c/${cat.slug}`}>All {cat.label}</ShopLink>
+                            <ShopLink href={`/c/${cat.slug}`}>{`All ${cat.label}`}</ShopLink>
                           </li>
                           {cat.children.map((child) => (
                             <li key={child.slug}>

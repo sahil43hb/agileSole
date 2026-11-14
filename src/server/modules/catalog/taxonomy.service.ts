@@ -209,7 +209,6 @@ export async function listSizeCharts(locale = "en") {
     if (chartRowsList.some((r) => !r.pk && r.uk)) {
       const next = chartRowsList.map((r) => ({ ...r, pk: r.pk || r.uk || "" }));
       await SizeChart.updateOne({ _id: c._id }, { rows: next });
-      c.rows = next;
     }
   }
   return rows.map((c) => ({

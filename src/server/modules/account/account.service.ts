@@ -201,12 +201,12 @@ export async function listTickets(status?: string) {
 
 export async function getTicket(id: string) {
   await connectDb();
-  const row = await Ticket.findById(id).lean();
-  if (!row) throw new Error("Ticket not found");
+  const row = await Ticket.findById(id).lean<{ customerId?: string } | null>();
+  if (!row || Array.isArray(row)) throw new Error("Ticket not found");
   let customer: { id: string; name?: string; phone?: string; email?: string } | null = null;
   if (row.customerId) {
-    const c = await Customer.findById(row.customerId).lean();
-    if (c) {
+    const c = await Customer.findById(row.customerId).lean<{ _id: unknown; name?: string; phone?: string; email?: string } | null>();
+    if (c && !Array.isArray(c)) {
       customer = {
         id: String(c._id),
         name: c.name,
