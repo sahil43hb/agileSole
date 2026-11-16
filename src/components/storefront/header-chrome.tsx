@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Heart, Menu, Search, ShoppingBag, User } from "lucide-react";
+import { Heart, Menu, Search, ShoppingBag } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Wordmark } from "@/components/brand/logo";
 import { LanguageSwitcher } from "./language-switcher";
@@ -10,7 +10,7 @@ import { MobileMenu } from "./mobile-menu";
 import { SearchOverlay } from "./search-overlay";
 import { useWishlist } from "./wishlist-provider";
 import { useCart } from "./cart-provider";
-import { useAuth } from "./auth-provider";
+import { AccountMenu } from "./account-menu";
 
 function IconBtn({
   label,
@@ -65,7 +65,6 @@ export function HeaderChrome({
   const [menuOpen, setMenuOpen] = useState(false);
   const { count } = useWishlist();
   const { cart, openDrawer } = useCart();
-  const { customer } = useAuth();
 
   return (
     <header className="sticky top-0 z-40">
@@ -107,9 +106,6 @@ export function HeaderChrome({
                   <Search className="h-[17px] w-[17px]" strokeWidth={1.75} />
                 </IconBtn>
               </span>
-              <IconBtn label={labels.account} href={customer ? "/account" : "/account/login"}>
-                <User className="h-[17px] w-[17px]" strokeWidth={1.75} />
-              </IconBtn>
               <span className="hidden sm:inline-flex">
                 <IconBtn label={labels.wishlist} href="/wishlist">
                   <Heart className="h-[17px] w-[17px]" strokeWidth={1.75} />
@@ -117,6 +113,7 @@ export function HeaderChrome({
                 </IconBtn>
               </span>
             </div>
+            <AccountMenu />
             <button
               type="button"
               aria-label={labels.cart}

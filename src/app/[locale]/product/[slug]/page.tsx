@@ -107,15 +107,29 @@ export default async function ProductPage({
         ]}
       />
       <div className="mt-6">
-        <ProductDetail product={product} chart={chart} />
+        <ProductDetail
+          product={product}
+          chart={chart}
+          reviews={{ average: reviewData.average, count: reviewData.count }}
+        />
       </div>
-      <ReviewList
-        reviews={reviewData.reviews}
-        average={reviewData.average}
-        count={reviewData.count}
-        fit={reviewData.fit}
-      />
-      <ReviewForm slug={slug} />
+      <section id="reviews" className="mt-16 scroll-mt-28 overflow-hidden rounded-[2rem] bg-[#f6f7f5] p-6 md:p-8">
+        <div
+          className={
+            reviewData.count
+              ? "grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,20rem)]"
+              : "grid items-start gap-8 lg:grid-cols-[minmax(13rem,16rem)_minmax(0,1fr)]"
+          }
+        >
+          <ReviewList
+            reviews={reviewData.reviews}
+            average={reviewData.average}
+            count={reviewData.count}
+            fit={reviewData.fit}
+          />
+          <ReviewForm slug={slug} wide={!reviewData.count} />
+        </div>
+      </section>
       {related.length ? (
         <section className="mt-16">
           <h2 className="text-xl font-semibold">You may also like</h2>

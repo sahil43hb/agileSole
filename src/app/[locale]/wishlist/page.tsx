@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Heart } from "lucide-react";
 import { useLocale } from "next-intl";
 import { ProductCard } from "@/components/storefront/product-card";
 import { productGridClass } from "@/components/storefront/product-grid";
@@ -8,9 +9,12 @@ import { useWishlist } from "@/components/storefront/wishlist-provider";
 import { Link } from "@/i18n/navigation";
 import type { PublicProduct } from "@/server/modules/catalog/product.service";
 
+type Tab = "saved" | "bought";
+
 export default function WishlistPage() {
   const locale = useLocale();
-  const { slugs } = useWishlist();
+  const { slugs, bought, isBought } = useWishlist();
+  const [tab, setTab] = useState<Tab>("saved");
   const [products, setProducts] = useState<PublicProduct[] | null>(null);
 
   useEffect(() => {
@@ -24,25 +28,65 @@ export default function WishlistPage() {
       .catch(() => setProducts([]));
   }, [slugs, locale]);
 
+  const savedProducts = useMemo(() => (products || []).filter((p) => !isBought(p.slug)), [products, isBought]);
+  const boughtProducts = useMemo(() => (products || []).filter((p) => isBought(p.slug)), [products, isBought]);
+  const visible = tab === "saved" ? savedProducts : boughtProducts;
+
   return (
     <div className="mx-auto max-w-[90rem] px-4 py-10 md:px-8">
-      <h1 className="text-3xl font-semibold">Wishlist</h1>
-      {products === null ? <p className="mt-6 text-ink-muted">Loading…</p> : null}
-      {products && products.length === 0 ? (
-        <div className="mt-6 max-w-md">
-          <p className="text-ink-muted">No saved pairs yet. Tap the heart on a product.</p>
-          <Link href="/shop" className="mt-4 inline-block text-sm text-brand-dark">
+      <h1 className="text-3xl font-semibold tracking-tight">Wishlist</h1>
+      <p className="mt-1 text-sm text-ink-muted">
+        Pick a size and add to bag here. After you order, pairs move to Bought.
+      </p>
+
+      <div className="mt-6 inline-flex rounded-full bg-[#f2f4f2] p-1">
+        <TabButton active={tab === "saved"} onClick={() => setTab("saved")}>
+          Saved {products !== null ? savedProducts.length : ""}
+        </TabButton>
+        <TabButton active={tab === "bought"} onClick={() => setTab("bought")}>
+          Bought {products !== null ? boughtProducts.length : ""}
+        </TabButton>
+      </div>
+
+      {products === null ? <p className="mt-8 text-ink-muted">Loading…</p> : null}
+
+      {products && visible.length === 0 ? (
+        <div className="mt-10 max-w-md">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f2f4f2]">
+            <Heart className="h-5 w-5 text-ink-muted" />
+          </div>
+          <p className="mt-4 text-ink-muted">
+            {tab === "saved"
+              ? bought.length
+                ? "Nothing waiting. Ordered pairs are in Bought."
+                : "No saved pairs yet. Tap the heart on a product."
+              : "Nothing bought from this list yet."}
+          </p>
+          <Link href="/shop" className="mt-4 inline-block text-sm font-medium text-brand-dark">
             Browse the shop
           </Link>
         </div>
       ) : null}
-      {products && products.length ? (
+
+      {products && visible.length ? (
         <div className={`mt-8 ${productGridClass}`}>
-          {products.map((p) => (
-            <ProductCard key={p.id} product={p} />
+          {visible.map((p) => (
+            <ProductCard key={p.id} product={p} purchased={tab === "bought"} quickAdd />
           ))}
         </div>
       ) : null}
     </div>
+  );
+}
+
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`h-9 rounded-full px-4 text-sm font-medium ${active ? "bg-white text-ink shadow-sm" : "text-ink-muted"}`}
+    >
+      {children}
+    </button>
   );
 }

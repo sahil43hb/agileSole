@@ -5,8 +5,19 @@ import { Link } from "@/i18n/navigation";
 import type { PublicProduct } from "@/server/modules/catalog/product.service";
 import { formatPkr } from "@/shared/money";
 import { useWishlist } from "./wishlist-provider";
+import { QuickAddButton } from "./quick-add";
 
-export function ProductCard({ product, compact = true }: { product: PublicProduct; compact?: boolean }) {
+export function ProductCard({
+  product,
+  compact = true,
+  purchased = false,
+  quickAdd = false,
+}: {
+  product: PublicProduct;
+  compact?: boolean;
+  purchased?: boolean;
+  quickAdd?: boolean;
+}) {
   const image = product.images[0];
   const hover = product.images[1] || image;
   const { has, toggle } = useWishlist();
@@ -54,6 +65,11 @@ export function ProductCard({ product, compact = true }: { product: PublicProduc
             {!product.inStock ? (
               <span className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-medium">Sold out</span>
             ) : null}
+            {purchased ? (
+              <span className="rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink shadow-sm">
+                Bought
+              </span>
+            ) : null}
           </div>
         </div>
         <div className={`px-0.5 ${compact ? "mt-2" : "mt-3.5"}`}>
@@ -86,6 +102,11 @@ export function ProductCard({ product, compact = true }: { product: PublicProduc
       >
         <Heart className={`h-4 w-4 ${saved ? "fill-brand text-brand" : ""}`} />
       </button>
+      {quickAdd ? (
+        <div className="px-0.5">
+          <QuickAddButton product={product} label={purchased ? "Buy again" : "Add to bag"} />
+        </div>
+      ) : null}
     </div>
   );
 }

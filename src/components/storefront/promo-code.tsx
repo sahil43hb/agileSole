@@ -45,9 +45,9 @@ export function PromoCode() {
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="Promo code"
-            className="min-w-0 flex-1 border border-paper-line px-3 py-2 text-sm"
+            className="h-11 min-w-0 flex-1 rounded-full border-0 bg-[#f3f5f2] px-4 text-sm outline-none ring-1 ring-transparent placeholder:text-ink-faint focus:bg-white focus:ring-brand/40"
           />
-          <button type="submit" disabled={busy || !code} className="btn-primary h-11 px-4 disabled:opacity-50">
+          <button type="submit" disabled={busy || !code} className="btn-primary h-11 rounded-full px-4 text-sm disabled:opacity-50">
             Apply
           </button>
         </form>

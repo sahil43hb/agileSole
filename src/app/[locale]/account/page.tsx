@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChevronRight, Heart, MapPin, Package } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { AccountShell } from "@/components/storefront/account-shell";
+import { customerFirstName } from "@/components/storefront/account-menu";
 import { formatPkr } from "@/shared/money";
 import { statusLabel } from "@/shared/order-copy";
 import { useAuth } from "@/components/storefront/auth-provider";
@@ -27,36 +29,53 @@ export default function AccountHomePage() {
       .then((j) => j.ok && setMe(j.data));
   }, [customer]);
 
+  const stats = [
+    { href: "/account/orders", label: "Orders", value: me?.orderCount ?? "—", icon: Package },
+    { href: "/wishlist", label: "Wishlist", value: count, icon: Heart },
+    { href: "/account/addresses", label: "Addresses", value: me?.customer.addresses?.length ?? 0, icon: MapPin },
+  ];
+
   return (
     <AccountShell>
-      <h1 className="text-2xl font-semibold">Your account</h1>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-dark">Account</p>
+      <h1 className="mt-1 text-3xl font-semibold tracking-tight">Hi, {customerFirstName(customer?.name)}</h1>
       <p className="mt-1 text-sm text-ink-muted">Orders, addresses, and tracking in one place.</p>
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        <div className="bg-paper-warm p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">Orders</p>
-          <p className="mt-2 text-2xl">{me?.orderCount ?? "—"}</p>
-        </div>
-        <div className="bg-paper-warm p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">Wishlist</p>
-          <p className="mt-2 text-2xl">{count}</p>
-        </div>
-        <div className="bg-paper-warm p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">Addresses</p>
-          <p className="mt-2 text-2xl">{me?.customer.addresses?.length ?? 0}</p>
-        </div>
-      </div>
-      {me?.lastOrder ? (
-        <div className="mt-8 border border-paper-line p-4">
-          <p className="text-sm text-ink-muted">Latest order</p>
-          <p className="mt-1 font-medium">
-            {me.lastOrder.number} · {statusLabel(me.lastOrder.status, locale)} · {formatPkr(me.lastOrder.amounts.total)}
-          </p>
-          <Link href={`/account/orders/${me.lastOrder._id}`} className="mt-2 inline-block text-sm text-brand-dark">
-            View timeline
+
+      <div className="mt-8 grid gap-3 sm:grid-cols-3">
+        {stats.map((s) => (
+          <Link
+            key={s.label}
+            href={s.href}
+            className="rounded-[1.35rem] bg-white p-5 shadow-[0_8px_28px_rgba(17,17,17,0.04)] ring-1 ring-black/[0.04] transition hover:ring-black/10"
+          >
+            <s.icon className="h-4 w-4 text-brand" />
+            <p className="mt-3 text-xs font-medium uppercase tracking-[0.16em] text-ink-muted">{s.label}</p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight">{s.value}</p>
           </Link>
-        </div>
+        ))}
+      </div>
+
+      {me?.lastOrder ? (
+        <Link
+          href={`/account/orders/${me.lastOrder._id}`}
+          className="mt-6 flex items-center justify-between gap-4 rounded-[1.35rem] bg-white p-5 shadow-[0_8px_28px_rgba(17,17,17,0.04)] ring-1 ring-black/[0.04] transition hover:ring-black/10"
+        >
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink-muted">Latest order</p>
+            <p className="mt-1 font-semibold">{me.lastOrder.number}</p>
+            <p className="mt-0.5 text-sm text-ink-muted">
+              {statusLabel(me.lastOrder.status, locale)} · {formatPkr(me.lastOrder.amounts.total)}
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1 text-sm font-medium text-brand-dark">
+            View timeline
+            <ChevronRight className="h-4 w-4" />
+          </span>
+        </Link>
       ) : (
-        <p className="mt-8 text-sm text-ink-muted">No orders yet. Guest checkout still lets you track with order number + phone.</p>
+        <div className="mt-6 rounded-[1.35rem] bg-white p-5 text-sm text-ink-muted ring-1 ring-black/[0.04]">
+          No orders yet. Guest checkout still lets you track with order number + phone.
+        </div>
       )}
     </AccountShell>
   );
