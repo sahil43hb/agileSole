@@ -1,11 +1,27 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { Check, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { AppSelect } from "@/components/ui/app-select";
+
+const SCROLL_KEY = "as-catalog-scroll";
+
+function rememberScroll() {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+}
+
+function restoreScroll() {
+  if (typeof window === "undefined") return;
+  const raw = sessionStorage.getItem(SCROLL_KEY);
+  if (raw == null) return;
+  const y = Number(raw);
+  if (!Number.isFinite(y)) return;
+  window.scrollTo(0, y);
+}
 
 const COLOR_HEX: Record<string, string> = {
   black: "#1a1a1a",
@@ -66,22 +82,39 @@ export function CatalogFilters({
 }) {
   const t = useTranslations("shop");
   const n = useTranslations("nav");
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
 
-  function go(href: string) {
-    const y = typeof window !== "undefined" ? window.scrollY : 0;
-    router.replace(href, { scroll: false });
-    if (typeof window === "undefined") return;
-    const pin = () => {
-      if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+  useLayoutEffect(() => {
+    restoreScroll();
+  }, [searchParams]);
+
+  useEffect(() => {
+    restoreScroll();
+    const frames = [0, 50, 150, 350].map((ms) => window.setTimeout(restoreScroll, ms));
+    const onClick = (e: MouseEvent) => {
+      const el = (e.target as Element | null)?.closest("a[href]");
+      if (!(el instanceof HTMLAnchorElement)) return;
+      try {
+        const next = new URL(el.href, window.location.href);
+        if (next.pathname === window.location.pathname) rememberScroll();
+      } catch {
+        /* ignore */
+      }
     };
-    pin();
-    requestAnimationFrame(pin);
-    window.setTimeout(pin, 40);
-    window.setTimeout(pin, 120);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      frames.forEach((id) => window.clearTimeout(id));
+      document.removeEventListener("click", onClick, true);
+    };
+  }, [searchParams]);
+
+  function go(href: string) {
+    rememberScroll();
+    router.replace(href, { locale, scroll: false });
   }
 
   function setParam(key: string, value?: string) {
