@@ -104,7 +104,7 @@ export default function TrackOrderPage() {
               {order.items.map((item, i) => (
                 <li key={`${item.title}-${i}`} className="flex justify-between gap-3">
                   <span>
-                    {item.title} · {c("eu", { size: item.sizeEu })} × {item.qty}
+                    {item.title} · {c("eu", { size: item.sizeEu || "—" })} × {item.qty}
                   </span>
                 </li>
               ))}

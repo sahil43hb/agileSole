@@ -10,14 +10,21 @@ export async function POST(request: Request) {
     const limited = rateLimit(clientKey(request.headers, "place-order"), 8, 10 * 60_000);
     if (!limited.ok) return fail("RATE_LIMIT", "Too many checkout attempts", 429);
     const guestId = await getGuestId();
-    const body = (await request.json()) as { address?: { phone?: string } };
+    const body: unknown = await request.json();
+    const checkoutPhone =
+      typeof body === "object" &&
+      body !== null &&
+      "address" in body &&
+      typeof (body as { address?: { phone?: unknown } }).address?.phone === "string"
+        ? (body as { address: { phone: string } }).address.phone
+        : "";
     const session = await getSessionCustomer();
-    const checkoutPhone = body.address?.phone || "";
+    const sessionPhone = typeof session?.phone === "string" ? session.phone : "";
     const skipOtp = Boolean(
-      session?.phone &&
+      sessionPhone &&
         isPkMobile(checkoutPhone) &&
-        isPkMobile(session.phone) &&
-        normalizePkPhone(checkoutPhone) === normalizePkPhone(session.phone),
+        isPkMobile(sessionPhone) &&
+        normalizePkPhone(checkoutPhone) === normalizePkPhone(sessionPhone),
     );
     const order = await placeOrder(guestId, body, skipOtp ? { skipOtp: true } : undefined);
     return ok({ order }, 201);

@@ -134,7 +134,7 @@ export default function AccountOrderDetailPage() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">{item.title}</p>
                   <p className="text-xs text-ink-muted">
-                    {item.color ? `${item.color} · ` : ""}{c("eu", { size: item.sizeEu })} × {item.qty}
+                    {item.color ? `${item.color} · ` : ""}{c("eu", { size: item.sizeEu || "—" })} × {item.qty}
                   </p>
                 </div>
                 <p className="shrink-0 text-sm font-medium">{formatPkr(item.price * item.qty)}</p>

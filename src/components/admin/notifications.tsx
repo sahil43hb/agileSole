@@ -108,7 +108,6 @@ export function AdminNotifications() {
 
   useEffect(() => {
     let source: EventSource | null = null;
-    let poll: number | undefined;
     let retry: number | undefined;
 
     function connect() {
@@ -132,7 +131,7 @@ export function AdminNotifications() {
     }
 
     connect();
-    poll = window.setInterval(() => {
+    const poll = window.setInterval(() => {
       void fetch("/api/v1/admin/notifications", { credentials: "same-origin" })
         .then((r) => r.json())
         .then((json) => {

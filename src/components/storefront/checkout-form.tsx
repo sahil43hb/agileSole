@@ -54,7 +54,7 @@ function Field({ label, children, className = "" }: { label: string; children: R
   );
 }
 
-function Card({ step, title, hint, children }: { step?: string; title: string; hint?: string; children: ReactNode }) {
+function Card({ step, title, hint, children }: { step?: string; title: string; hint?: string; children?: ReactNode }) {
   return (
     <section className="rounded-[1.5rem] bg-white p-5 shadow-[0_10px_36px_rgba(17,17,17,0.04)] ring-1 ring-black/[0.04] md:p-6">
       <div className="flex items-start gap-3">

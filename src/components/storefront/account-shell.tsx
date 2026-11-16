@@ -53,7 +53,8 @@ export function AccountShell({ children }: { children: ReactNode }) {
           </div>
           <nav className="mt-5 space-y-0.5">
             {NAV.map((item) => {
-              const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+              const active =
+                "exact" in item && item.exact ? pathname === item.href : pathname.startsWith(item.href);
               const Icon = item.icon;
               return (
                 <Link
