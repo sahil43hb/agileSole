@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, LogOut, Package, UserRound } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useAuth } from "./auth-provider";
 
 export function customerInitials(name?: string, phone?: string) {
@@ -12,8 +13,8 @@ export function customerInitials(name?: string, phone?: string) {
   return (digits.slice(-2) || "AS").toUpperCase();
 }
 
-export function customerFirstName(name?: string) {
-  return (name || "").trim().split(/\s+/)[0] || "Account";
+export function customerFirstName(name?: string, fallback = "Account") {
+  return (name || "").trim().split(/\s+/)[0] || fallback;
 }
 
 export function CustomerAvatar({
@@ -34,6 +35,8 @@ export function CustomerAvatar({
 }
 
 export function AccountMenu() {
+  const t = useTranslations("account");
+  const n = useTranslations("nav");
   const { customer, signOut } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -51,7 +54,7 @@ export function AccountMenu() {
     return (
       <Link
         href="/account/login"
-        aria-label="Account"
+        aria-label={n("account")}
         className="relative grid h-9 w-9 place-items-center rounded-full text-ink/80 transition hover:bg-white hover:text-ink"
       >
         <UserRound className="h-[17px] w-[17px]" strokeWidth={1.75} />
@@ -68,20 +71,20 @@ export function AccountMenu() {
         className="flex h-10 items-center gap-2 rounded-full bg-white py-0.5 pe-2 ps-0.5 ring-1 ring-black/[0.08] transition hover:ring-black/15"
       >
         <CustomerAvatar name={customer.name} phone={customer.phone} size="sm" />
-        <span className="hidden max-w-[7.5rem] truncate text-sm font-medium sm:inline">{customerFirstName(customer.name)}</span>
+        <span className="hidden max-w-[7.5rem] truncate text-sm font-medium sm:inline">{customerFirstName(customer.name, t("defaultName"))}</span>
         <ChevronDown className={`hidden h-3.5 w-3.5 text-ink-muted sm:block ${open ? "rotate-180" : ""}`} />
       </button>
       {open ? (
         <div className="absolute end-0 top-[calc(100%+8px)] z-50 w-56 overflow-hidden rounded-2xl bg-white py-1.5 shadow-[0_18px_50px_rgba(17,17,17,0.14)] ring-1 ring-black/[0.06]">
-          <p className="px-3 pb-1.5 pt-1 text-xs text-ink-muted">Signed in</p>
+          <p className="px-3 pb-1.5 pt-1 text-xs text-ink-muted">{t("signedIn")}</p>
           <p className="truncate px-3 pb-2 text-sm font-medium">{customer.name || customer.phone}</p>
           <Link href="/account" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-[#f4f7f5]" onClick={() => setOpen(false)}>
             <UserRound className="h-4 w-4 text-ink-muted" />
-            Your account
+            {t("yourAccount")}
           </Link>
           <Link href="/account/orders" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-[#f4f7f5]" onClick={() => setOpen(false)}>
             <Package className="h-4 w-4 text-ink-muted" />
-            Orders
+            {t("orders")}
           </Link>
           <button
             type="button"
@@ -93,7 +96,7 @@ export function AccountMenu() {
             }}
           >
             <LogOut className="h-4 w-4" />
-            Sign out
+            {t("signOut")}
           </button>
         </div>
       ) : null}

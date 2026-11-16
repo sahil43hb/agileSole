@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { ProductCard } from "./product-card";
 import { productListingGridClass } from "./product-grid";
 import { CatalogFilters } from "./catalog-filters";
@@ -7,17 +8,7 @@ import { Breadcrumbs } from "./breadcrumbs";
 import { Link } from "@/i18n/navigation";
 import type { PublicProduct } from "@/server/modules/catalog/product.service";
 
-const CHIP_LABEL: Record<string, string> = {
-  size: "Size",
-  color: "Color",
-  gender: "Who",
-  inStock: "In stock",
-  onSale: "On sale",
-  type: "Type",
-  q: "Search",
-};
-
-export function CatalogListing({
+export async function CatalogListing({
   title,
   description,
   products,
@@ -55,6 +46,18 @@ export function CatalogListing({
     return qs ? `${path}?${qs}` : path;
   }
 
+  const t = await getTranslations("shop");
+  const n = await getTranslations("nav");
+  const c = await getTranslations("common");
+  const CHIP_LABEL: Record<string, string> = {
+    size: t("size"),
+    color: t("color"),
+    gender: t("who"),
+    inStock: t("inStock"),
+    onSale: t("onSale"),
+    type: t("type"),
+    q: c("search"),
+  };
   const chips = Object.entries(query || {}).filter(([k, v]) => v && k !== "page" && k !== "sort");
 
   return (
@@ -94,7 +97,7 @@ export function CatalogListing({
               </Link>
             ))}
             <Link href={path} scroll={false} className="px-2 text-xs text-brand-dark hover:underline">
-              Clear all
+              {t("clearAll")}
             </Link>
           </div>
         ) : null}
@@ -110,19 +113,17 @@ export function CatalogListing({
           >
             {products.length === 0 ? (
               <div className="rounded-3xl bg-[#f6f8f6] px-8 py-16 text-center">
-                <p className="text-lg font-medium">No pairs match these filters yet.</p>
-                <p className="mx-auto mt-2 max-w-sm text-sm text-ink-muted">
-                  Try another size or colour, or browse a category.
-                </p>
+                <p className="text-lg font-medium">{t("empty")}</p>
+                <p className="mx-auto mt-2 max-w-sm text-sm text-ink-muted">{t("emptyHint")}</p>
                 <div className="mt-6 flex justify-center gap-3 text-sm">
                   <Link href="/c/men" className="rounded-full bg-ink px-4 py-2 text-paper">
-                    Men
+                    {n("men")}
                   </Link>
                   <Link href="/c/women" className="rounded-full bg-white px-4 py-2 ring-1 ring-paper-line">
-                    Women
+                    {n("women")}
                   </Link>
                   <Link href="/shop" className="rounded-full bg-white px-4 py-2 ring-1 ring-paper-line">
-                    Shop all
+                    {t("shopAll")}
                   </Link>
                 </div>
               </div>
@@ -139,7 +140,7 @@ export function CatalogListing({
                   <Link
                     href={hrefFor(page - 1)}
                     className="inline-flex h-10 w-10 items-center justify-center rounded-full ring-1 ring-paper-line hover:bg-[#f6f7f5]"
-                    aria-label="Previous page"
+                    aria-label={t("prev")}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Link>
@@ -159,7 +160,7 @@ export function CatalogListing({
                   <Link
                     href={hrefFor(page + 1)}
                     className="inline-flex h-10 w-10 items-center justify-center rounded-full ring-1 ring-paper-line hover:bg-[#f6f7f5]"
-                    aria-label="Next page"
+                    aria-label={t("next")}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Link>

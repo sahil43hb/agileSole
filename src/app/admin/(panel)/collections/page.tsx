@@ -4,8 +4,10 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Plus, RotateCcw, X } from "lucide-react";
 import {
   AdminModal,
+  AdminHeaderAction,
   AdminPageHeader,
   AdminSearch,
+  AdminTable,
   ConfirmDialog,
   EmptyNote,
   SingleSelect,
@@ -14,6 +16,7 @@ import {
   rowBtnDanger,
 } from "@/components/admin/ui";
 import { AppSelect } from "@/components/ui/app-select";
+import { SwitchTrack } from "@/components/ui/switch";
 
 type Col = {
   id: string;
@@ -158,16 +161,7 @@ export default function CollectionsPage() {
       <AdminPageHeader
         title="Collections"
         description={`${rows.length} merchandising groups on the store`}
-        actions={
-          <button
-            type="button"
-            onClick={openNew}
-            className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-medium text-white"
-          >
-            <Plus className="h-4 w-4" />
-            Add collection
-          </button>
-        }
+        actions={<AdminHeaderAction icon={Plus} label="Add collection" onClick={openNew} />}
       />
 
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--admin-line)] bg-white p-3 shadow-sm">
@@ -211,6 +205,7 @@ export default function CollectionsPage() {
       {!visible.length ? (
         <EmptyNote>No collections match these filters.</EmptyNote>
       ) : (
+        <AdminTable>
         <table>
           <thead>
             <tr>
@@ -251,6 +246,7 @@ export default function CollectionsPage() {
             ))}
           </tbody>
         </table>
+        </AdminTable>
       )}
 
       {editing ? (
@@ -312,9 +308,7 @@ export default function CollectionsPage() {
                   }`}
                 >
                   {form.isActive ? "Active on store" : "Inactive"}
-                  <span className={`h-5 w-9 rounded-full p-0.5 ${form.isActive ? "bg-brand" : "bg-[#d5ddd7]"}`}>
-                    <span className={`block h-4 w-4 rounded-full bg-white transition ${form.isActive ? "translate-x-4" : ""}`} />
-                  </span>
+                  <SwitchTrack on={form.isActive} />
                 </button>
               </div>
               <div>

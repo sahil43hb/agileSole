@@ -2,64 +2,154 @@ export const LEGAL = {
   privacy: {
     en: {
       title: "Privacy",
-      body: [
-        "Agile Sole (Gujranwala, Pakistan) collects the name, mobile number, address, and optional email you give us so we can confirm, pack, and deliver cash-on-delivery orders.",
-        "We store a guest cookie so your bag survives a refresh, a language preference, and a wishlist on this device. Staff accounts use a signed session cookie.",
-        "We do not sell your list. We share delivery details with the courier who carries your pair. Payment gateways are not used in this release; you pay cash on delivery.",
-        "If you accept analytics cookies, we may load Google Analytics 4 and the Meta Pixel with the IDs set in admin. You can choose necessary cookies only.",
-        "To see, correct, or delete account data, write to the contact form or WhatsApp the number on the site. This notice is written to sit alongside PECA duties for a small retailer.",
+      intro: "Only what we need to confirm, pack, and deliver your COD order.",
+      sections: [
+        {
+          heading: "What we collect",
+          body: "Name, mobile, address, and optional email — so we can call, pack, and send the pair cash on delivery.",
+        },
+        {
+          heading: "Cookies on this device",
+          body: "A guest cookie keeps your bag after a refresh. We also remember language and wishlist on this browser.",
+        },
+        {
+          heading: "Who sees it",
+          body: "We do not sell your list. The courier only gets what they need to deliver. You pay cash — no card gateway in this shop.",
+        },
+        {
+          heading: "Analytics",
+          body: "If you accept extra cookies, we may load Google Analytics and the Meta Pixel. Necessary cookies still work if you decline.",
+        },
+        {
+          heading: "Your data",
+          body: "To see, correct, or delete account details, use the contact form or WhatsApp the number on the site.",
+        },
       ],
     },
     ur: {
       title: "پرائیویسی",
-      body: [
-        "ایجائیل سول (گوجرانوالہ) آپ کا نام، موبائل، پتہ اور اختیاری ای میل صرف آرڈر کی تصدیق، پیکنگ اور کیش آن ڈیلیوری کے لیے رکھتا ہے۔",
-        "گیسٹ کوکی بیگ، زبان اور پسندیدہ فہرست کے لیے ہے۔ اسٹاف سیشن الگ کوکی سے چلتا ہے۔",
-        "ہم آپ کی فہرست نہیں بیچتے۔ کوریئر کو صرف ڈیلیوری کا پتہ ملتا ہے۔ اس ریلیز میں ادائیگی گیٹ وے نہیں ہے۔",
-        "اگر آپ تجزیاتی کوکیز قبول کریں تو ایڈمن میں درج GA4 اور میٹا پکسل چل سکتے ہیں۔ صرف ضروری کوکیز بھی چن سکتے ہیں۔",
-        "اکاؤنٹ کی معلومات دیکھنے، بدلنے یا مٹانے کے لیے رابطہ فارم یا واٹس ایپ استعمال کریں۔",
+      intro: "صرف وہی جو کیش آن ڈیلیوری آرڈر کی تصدیق، پیکنگ اور ڈیلیوری کے لیے چاہیے۔",
+      sections: [
+        {
+          heading: "ہم کیا رکھتے ہیں",
+          body: "نام، موبائل، پتہ اور اختیاری ای میل — کال، پیکنگ اور کیش آن ڈیلیوری کے لیے.",
+        },
+        {
+          heading: "اس ڈیوائس پر کوکیز",
+          body: "گیسٹ کوکی ریفریش کے بعد بیگ رکھتی ہے۔ زبان اور پسندیدہ بھی اسی براؤزر پر یاد رہتے ہیں۔",
+        },
+        {
+          heading: "کون دیکھتا ہے",
+          body: "ہم فہرست نہیں بیچتے۔ کوریئر کو صرف ڈیلیوری کا پتہ ملتا ہے۔ ادائیگی نقد ہے۔",
+        },
+        {
+          heading: "تجزیہ",
+          body: "اگر آپ اجازت دیں تو گوگل اینالیٹکس اور میٹا پکسل چل سکتے ہیں۔ ضروری کوکیز بغیر اجازت بھی کام کرتی ہیں۔",
+        },
+        {
+          heading: "آپ کا ڈیٹا",
+          body: "دیکھنے، بدلنے یا مٹانے کے لیے رابطہ فارم یا سائٹ والا واٹس ایپ استعمال کریں۔",
+        },
       ],
     },
   },
   terms: {
     en: {
       title: "Terms",
-      body: [
-        "By placing a cash-on-delivery order you ask Agile Sole to reserve the selected sizes, call to confirm, and collect the shown amount when the pair arrives.",
-        "Prices are in Pakistani rupees. Shipping is the fee shown at checkout, or free above the published threshold. High-value orders may need an extra confirmation call.",
-        "We may cancel orders that we cannot reach, that look like fake COD, or that we cannot fulfil. Reserved stock is released if we cancel before pack; packed orders restock on return.",
-        "Size exchanges follow the shipping and returns page. Unworn pairs in original packing only. These terms are governed by the laws of Pakistan.",
-        "JazzCash, EasyPaisa, cards, and courier APIs are not part of this release. Turning them on later does not change these COD terms until we publish an update.",
+      intro: "Cash on delivery from Gujranwala. These are the rules when you place an order.",
+      sections: [
+        {
+          heading: "Placing an order",
+          body: "A COD order asks us to reserve the sizes you picked, confirm on the phone, and collect the shown amount when the pair arrives.",
+        },
+        {
+          heading: "Prices",
+          body: "Prices are in Pakistani rupees. Shipping is the fee at checkout, or free above the published threshold. Large orders may need a second confirmation call.",
+        },
+        {
+          heading: "If we cannot deliver",
+          body: "We may cancel orders we cannot reach, that look like fake COD, or that we cannot fulfil. Stock is released if we cancel before packing.",
+        },
+        {
+          heading: "Size exchanges",
+          body: "Exchanges follow the shipping page. Unworn pairs in the original box only. Pakistani law governs these terms.",
+        },
+        {
+          heading: "How you pay",
+          body: "This shop is cash on delivery. JazzCash, EasyPaisa, and cards are not offered yet.",
+        },
       ],
     },
     ur: {
       title: "شرائط",
-      body: [
-        "کیش آن ڈیلیوری آرڈر سے آپ منتخب سائز ریزرو کرنے، کال پر تصدیق، اور جوڑی ملتے وقت دکھائی گئی رقم ادا کرنے کا کہتے ہیں۔",
-        "قیمتیں پاکستانی روپے میں ہیں۔ شپنگ چیک آؤٹ پر دکھائی جاتی ہے یا حد سے اوپر مفت۔ بڑے آرڈر پر اضافی کال ہو سکتی ہے۔",
-        "ناقابل رسائی، جعلی سی او ڈی، یا ناقابل تکمیل آرڈر منسوخ ہو سکتے ہیں۔ پیک سے پہلے ریزرو ختم؛ واپسی پر اسٹاک واپس۔",
-        "سائز تبدیلی شپنگ صفحے کے مطابق، بغیر استعمال جوڑی اور اصل پیکنگ۔ پاکستان کے قوانین لاگو ہیں۔",
-        "جاز کیش، ایزی پیسہ، کارڈ اور کوریئر اے پی آئی اس ریلیز میں نہیں۔",
+      intro: "گوجرانوالہ سے کیش آن ڈیلیوری۔ آرڈر پر یہ اصول لاگو ہیں۔",
+      sections: [
+        {
+          heading: "آرڈر دینا",
+          body: "کیش آن ڈیلیوری آرڈر سے منتخب سائز ریزرو، فون پر تصدیق، اور جوڑی آنے پر دکھائی گئی رقم وصول ہوتی ہے۔",
+        },
+        {
+          heading: "قیمتیں",
+          body: "قیمتیں پاکستانی روپے میں ہیں۔ شپنگ چیک آؤٹ پر ہے، یا حد سے اوپر مفت۔ بڑے آرڈر پر دوسری کال ہو سکتی ہے۔",
+        },
+        {
+          heading: "اگر ڈیلیوری نہ ہو",
+          body: "ناقابل رسائی، جعلی سی او ڈی، یا ناقابل تکمیل آرڈر منسوخ ہو سکتے ہیں۔ پیک سے پہلے اسٹاک واپس۔",
+        },
+        {
+          heading: "سائز تبدیلی",
+          body: "تبدیلی شپنگ صفحے کے مطابق، بغیر استعمال جوڑی اور اصل ڈبا۔ پاکستان کے قوانین لاگو ہیں۔",
+        },
+        {
+          heading: "ادائیگی",
+          body: "یہ دکان کیش آن ڈیلیوری ہے۔ جاز کیش، ایزی پیسہ اور کارڈ ابھی دستیاب نہیں۔",
+        },
       ],
     },
   },
   shipping: {
     en: {
       title: "Shipping & returns",
-      body: [
-        "We ship across Pakistan from Gujranwala. Typical city delivery is 2–5 working days after the order is packed. Local pickup can be marked ready in admin.",
-        "Standard COD shipping is Rs 250, free over Rs 5,000 unless the owner changes those figures in settings.",
-        "Unworn pairs may be exchanged for size within 14 days (or the return window in settings). Keep the box. We do not refund worn soles.",
-        "Failed delivery may be retried. After return to origin the stock is put back on hand. Track with your order number and the mobile used at checkout.",
+      intro: "Packed in Gujranwala, delivered across Pakistan. Pay the rider when it arrives.",
+      sections: [
+        {
+          heading: "Delivery time",
+          body: "City delivery is typically 2–5 working days after we pack. Local pickup can be arranged when you message the shop.",
+        },
+        {
+          heading: "COD shipping",
+          body: "Standard cash-on-delivery shipping is Rs 250, and free over Rs 5,000.",
+        },
+        {
+          heading: "Size exchange",
+          body: "Unworn pairs can be exchanged for size within 14 days. Keep the box. We do not refund worn soles.",
+        },
+        {
+          heading: "If a delivery fails",
+          body: "We may retry. When a pair comes back, stock returns to the shop. Track with your order number and checkout mobile.",
+        },
       ],
     },
     ur: {
       title: "شپنگ اور واپسی",
-      body: [
-        "گوجرانوالہ سے پاکستان بھر بھیجتے ہیں۔ پیک کے بعد عام شہر ڈیلیوری ۲ تا ۵ دن۔ مقامی پک اپ ایڈمن سے ہو سکتا ہے۔",
-        "معیاری سی او ڈی شپنگ ۲۵۰ روپے، ۵۰۰۰ سے اوپر مفت — جب تک سیٹنگز نہ بدلیں۔",
-        "۱۴ دن (یا سیٹنگز کی مدت) میں بغیر استعمال جوڑی کا سائز بدلا جا سکتا ہے۔ ڈبا رکھیں۔",
-        "ناکام ڈیلیوری دوبارہ کوشش ہو سکتی ہے۔ واپسی پر اسٹاک واپس۔ آرڈر نمبر اور موبائل سے ٹریک کریں۔",
+      intro: "گوجرانوالہ میں پیک، پاکستان بھر ڈیلیوری۔ جوڑی آنے پر رائیڈر کو ادا کریں۔",
+      sections: [
+        {
+          heading: "ڈیلیوری کا وقت",
+          body: "پیک کے بعد عام شہر ڈیلیوری 2 تا 5 کام کے دن۔ مقامی پک اپ کے لیے دکان کو پیغام بھیجیں۔",
+        },
+        {
+          heading: "کیش شپنگ",
+          body: "معیاری کیش آن ڈیلیوری شپنگ 250 روپے، 5,000 سے اوپر مفت۔",
+        },
+        {
+          heading: "سائز تبدیلی",
+          body: "14 دن میں بغیر استعمال جوڑی کا سائز بدلا جا سکتا ہے۔ ڈبا رکھیں۔ استعمال شدہ جوڑی واپس نہیں۔",
+        },
+        {
+          heading: "اگر ڈیلیوری ناکام ہو",
+          body: "دوبارہ کوشش ہو سکتی ہے۔ واپسی پر اسٹاک دکان پر آ جاتا ہے۔ آرڈر نمبر اور موبائل سے ٹریک کریں۔",
+        },
       ],
     },
   },

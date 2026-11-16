@@ -59,7 +59,7 @@ export default function AccountLoginPage() {
     <div className="bg-[#f6f7f5]">
       <div className="mx-auto max-w-md px-4 py-16">
         <div className="rounded-[1.6rem] bg-white p-6 shadow-[0_10px_36px_rgba(17,17,17,0.04)] ring-1 ring-black/[0.04] md:p-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-dark">Account</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-dark">{t("kicker")}</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">{t("loginTitle")}</h1>
           <p className="mt-2 text-sm text-ink-muted">{t("loginBody")}</p>
           <form onSubmit={sent ? verify : send} className="mt-8 space-y-4">
@@ -93,9 +93,9 @@ export default function AccountLoginPage() {
           {message ? <p className="mt-4 text-sm text-ink-muted">{message}</p> : null}
         </div>
         <p className="mt-6 text-center text-sm text-ink-muted">
-          Guest?{" "}
+          {t("guest")}{" "}
           <Link href="/track-order" className="font-medium text-brand-dark hover:underline">
-            Track with order number + phone
+            {t("trackHint")}
           </Link>
         </p>
       </div>

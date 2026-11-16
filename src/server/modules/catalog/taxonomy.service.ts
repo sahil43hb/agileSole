@@ -306,5 +306,11 @@ export async function adjustInventory(sku: string, onHand: number) {
   }
   variant.onHand = onHand;
   await product.save();
+  const available = Math.max(0, onHand - (variant.reserved || 0));
+  if (available <= 2) {
+    const { notifyAdminLowStock } = await import("@/server/modules/admin/admin-notice.service");
+    const title = pickLocale(product.title as { en: string; ur: string }, "en") || sku;
+    notifyAdminLowStock({ sku, title, available });
+  }
   return { sku, onHand, reserved: variant.reserved };
 }

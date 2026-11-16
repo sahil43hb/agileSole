@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { RotateCcw } from "lucide-react";
-import { AdminPageHeader, AdminSearch, EmptyNote, SingleSelect, formatAdminDate } from "@/components/admin/ui";
+import { AdminPageHeader, AdminSearch, AdminTable, EmptyNote, SingleSelect, formatAdminDate } from "@/components/admin/ui";
 
 type Entry = {
   _id: string;
@@ -65,6 +65,7 @@ export default function AuditPage() {
       {!visible.length ? (
         <EmptyNote>No audit events match.</EmptyNote>
       ) : (
+        <AdminTable>
         <table>
           <thead>
             <tr>
@@ -90,6 +91,7 @@ export default function AuditPage() {
             ))}
           </tbody>
         </table>
+        </AdminTable>
       )}
     </div>
   );

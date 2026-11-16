@@ -35,6 +35,7 @@ const orderSchema = new Schema(
         sizeEu: String,
         qty: Number,
         price: Number,
+        cost: Number,
         image: String,
       },
     ],

@@ -6,6 +6,7 @@ import {
   AdminModal,
   AdminPageHeader,
   AdminSearch,
+  AdminTable,
   EmptyNote,
   SingleSelect,
   StatusBadge,
@@ -39,6 +40,14 @@ export default function AdminReviewsPage() {
   }
   useEffect(() => {
     void load();
+  }, []);
+
+  useEffect(() => {
+    function onLive(e: Event) {
+      if ((e as CustomEvent<{ type?: string }>).detail?.type === "review_pending") void load();
+    }
+    window.addEventListener("as-admin-live", onLive);
+    return () => window.removeEventListener("as-admin-live", onLive);
   }, []);
 
   const visible = useMemo(() => {
@@ -93,6 +102,7 @@ export default function AdminReviewsPage() {
       {!visible.length ? (
         <EmptyNote>No reviews match.</EmptyNote>
       ) : (
+        <AdminTable>
         <table>
           <thead>
             <tr>
@@ -139,6 +149,7 @@ export default function AdminReviewsPage() {
             ))}
           </tbody>
         </table>
+        </AdminTable>
       )}
 
       {open ? (

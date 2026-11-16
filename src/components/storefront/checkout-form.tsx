@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState, type ReactNode } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft, Banknote, MessageCircle, PhoneCall, ShieldCheck, Truck } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { formatPkr } from "@/shared/money";
@@ -10,6 +10,32 @@ import { useWishlist } from "./wishlist-provider";
 import { Link } from "@/i18n/navigation";
 import { PromoCode } from "./promo-code";
 import { AppSelect } from "@/components/ui/app-select";
+import { Switch } from "@/components/ui/switch";
+import { ShippingEta } from "./shipping-eta";
+import { geoLabel } from "@/content/geo-pk";
+import { useAuth } from "./auth-provider";
+import { isPkMobile, normalizePkPhone } from "@/shared/phone";
+
+type SavedAddress = {
+  fullName?: string;
+  phone?: string;
+  altPhone?: string;
+  province?: string;
+  city?: string;
+  area?: string;
+  street?: string;
+  landmark?: string;
+  isDefault?: boolean;
+};
+
+function phonesMatch(a?: string, b?: string) {
+  if (!a || !b) return false;
+  try {
+    return isPkMobile(a) && isPkMobile(b) && normalizePkPhone(a) === normalizePkPhone(b);
+  } catch {
+    return false;
+  }
+}
 
 type Geo = {
   provinces: { name: string; cities: string[] }[];
@@ -42,7 +68,7 @@ function Card({ step, title, hint, children }: { step?: string; title: string; h
           {hint ? <p className="mt-0.5 text-sm text-ink-muted">{hint}</p> : null}
         </div>
       </div>
-      <div className="mt-5 space-y-3">{children}</div>
+      {children ? <div className="mt-5 space-y-3">{children}</div> : null}
     </section>
   );
 }
@@ -59,8 +85,11 @@ function idempotency() {
 
 export function CheckoutForm() {
   const locale = useLocale();
+  const t = useTranslations("checkout");
+  const c = useTranslations("common");
   const router = useRouter();
   const { cart, loading, refresh } = useCart();
+  const { customer: sessionCustomer } = useAuth();
   const { markBought } = useWishlist();
   const [geo, setGeo] = useState<Geo | null>(null);
   const [fullName, setFullName] = useState("");
@@ -92,6 +121,42 @@ export function CheckoutForm() {
       .catch(() => {});
   }, [refresh]);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/v1/me", { credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((json) => {
+        if (cancelled || !json.ok) return;
+        const profile = json.data.customer as {
+          name?: string;
+          phone?: string;
+          email?: string;
+          whatsappOptIn?: boolean;
+          addresses?: SavedAddress[];
+        };
+        const addresses = profile.addresses || [];
+        const saved = addresses.find((a) => a.isDefault) || addresses[0];
+        const last = (json.data.lastOrder as { shippingAddress?: SavedAddress } | null)?.shippingAddress;
+        const from = saved || last;
+        setFullName((v) => v || from?.fullName || profile.name || "");
+        setPhone((v) => v || from?.phone || profile.phone || "");
+        setEmail((v) => v || profile.email || "");
+        if (typeof profile.whatsappOptIn === "boolean") setWhatsappOptIn(profile.whatsappOptIn);
+        if (from) {
+          setAltPhone((v) => v || from.altPhone || "");
+          if (from.province) setProvince(from.province);
+          if (from.city) setCity(from.city);
+          setArea((v) => v || from.area || "");
+          setStreet((v) => v || from.street || "");
+          setLandmark((v) => v || from.landmark || "");
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const cities = useMemo(() => {
     return geo?.provinces.find((p) => p.name === province)?.cities || [];
   }, [geo, province]);
@@ -105,11 +170,11 @@ export function CheckoutForm() {
     });
     const json = await res.json();
     if (!json.ok) {
-      setMessage(json.error?.message || "Could not send code");
+      setMessage(json.error?.message || t("otpFail"));
       return;
     }
     setOtpSent(true);
-    const hint = json.data?.devCode ? `Code sent. Dev code ${json.data.devCode}` : "Code sent. In development it is printed in the server terminal.";
+    const hint = json.data?.devCode ? t("codeSentDev", { code: json.data.devCode }) : t("codeSent");
     setMessage(hint);
     if (json.data?.devCode) setOtp(String(json.data.devCode));
   }
@@ -117,7 +182,7 @@ export function CheckoutForm() {
   async function place(e: FormEvent) {
     e.preventDefault();
     if (!acceptTerms) {
-      setMessage("Please accept the terms to place a COD order.");
+      setMessage(t("acceptTerms"));
       return;
     }
     setBusy(true);
@@ -134,7 +199,7 @@ export function CheckoutForm() {
         callBeforeDelivery,
         whatsappOptIn,
         acceptTerms: true,
-        otp,
+        otp: phonesMatch(sessionCustomer?.phone, phone) ? undefined : otp,
         idempotencyKey: idempotency(),
         address: {
           fullName,
@@ -152,7 +217,7 @@ export function CheckoutForm() {
     const json = await res.json();
     setBusy(false);
     if (!json.ok) {
-      setMessage(json.error?.message || "Could not place order");
+      setMessage(json.error?.message || t("placeFail"));
       return;
     }
     sessionStorage.removeItem("as_checkout_idemp");
@@ -165,7 +230,7 @@ export function CheckoutForm() {
   if (loading) {
     return (
       <div className="mx-auto max-w-site px-4 py-16">
-        <p className="text-sm text-ink-muted">Loading checkout…</p>
+        <p className="text-sm text-ink-muted">{t("loading")}</p>
       </div>
     );
   }
@@ -173,17 +238,19 @@ export function CheckoutForm() {
   if (!cart.lines.length) {
     return (
       <div className="mx-auto max-w-lg px-4 py-20 text-center">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-dark">Checkout</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Your bag is empty</h1>
-        <p className="mt-3 text-sm text-ink-muted">Add a size from any pair, then come back to place a cash-on-delivery order.</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-dark">{t("title")}</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">{t("emptyTitle")}</h1>
+        <p className="mt-3 text-sm text-ink-muted">{t("emptyBody")}</p>
         <Link href="/shop" className="btn-primary mt-8 inline-flex h-12 rounded-full px-6">
-          Continue shopping
+          {c("continueShopping")}
         </Link>
       </div>
     );
   }
 
-  const placeLabel = busy ? "Placing…" : `Place COD order · ${formatPkr(cart.total)}`;
+  const placeLabel = busy ? t("placing") : t("place", { amount: formatPkr(cart.total) });
+  const signedIn = Boolean(sessionCustomer);
+  const skipOtp = phonesMatch(sessionCustomer?.phone, phone);
 
   return (
     <div className="bg-[#f6f7f5]">
@@ -192,39 +259,39 @@ export function CheckoutForm() {
           <div>
             <Link href="/cart" className="inline-flex items-center gap-1.5 text-sm text-ink-muted transition hover:text-ink">
               <ArrowLeft className="h-3.5 w-3.5" />
-              Back to bag
+              {t("back")}
             </Link>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Checkout</h1>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">{t("title")}</h1>
             <div className="mt-4 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium ring-1 ring-black/[0.06]">
                 <Banknote className="h-3.5 w-3.5 text-brand" />
-                Cash on delivery
+                {t("cod")}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium ring-1 ring-black/[0.06]">
                 <Truck className="h-3.5 w-3.5 text-brand" />
-                {geo?.shipping.eta || "2–5 working days"}
+                <ShippingEta eta={geo?.shipping.eta} />
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium ring-1 ring-black/[0.06]">
                 <ShieldCheck className="h-3.5 w-3.5 text-brand" />
-                Easy size exchange
+                {t("exchange")}
               </span>
             </div>
           </div>
 
-          <Card step="1" title="Contact" hint="We’ll use this to confirm your COD order.">
+          <Card step="1" title={t("contact")} hint={signedIn ? t("signedInHint") : t("contactHint")}>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Full name">
+              <Field label={t("fullName")}>
                 <input
                   required
                   data-testid="checkout-name"
                   dir="auto"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Name on the parcel"
+                  placeholder={t("namePlaceholder")}
                   className={field}
                 />
               </Field>
-              <Field label="Mobile (03XX or +92 3XX)">
+              <Field label={t("mobile")}>
                 <input
                   required
                   data-testid="checkout-phone"
@@ -235,18 +302,18 @@ export function CheckoutForm() {
                   className={field}
                 />
               </Field>
-              <Field label="Alternate phone">
-                <input value={altPhone} onChange={(e) => setAltPhone(e.target.value)} placeholder="Optional" className={field} />
+              <Field label={t("altPhone")}>
+                <input value={altPhone} onChange={(e) => setAltPhone(e.target.value)} placeholder={c("optional")} className={field} />
               </Field>
-              <Field label="Email">
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Optional" className={field} />
+              <Field label={t("email")}>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={c("optional")} className={field} />
               </Field>
             </div>
           </Card>
 
-          <Card step="2" title="Delivery address" hint="City delivery across Pakistan. Pay when the pair arrives.">
+          <Card step="2" title={t("address")} hint={t("addressHint")}>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Province">
+              <Field label={t("province")}>
                 <AppSelect
                   tone="store"
                   value={province}
@@ -255,45 +322,50 @@ export function CheckoutForm() {
                     const nextCities = geo?.provinces.find((p) => p.name === next)?.cities || [];
                     setCity(nextCities[0] || "");
                   }}
-                  options={(geo?.provinces || []).map((p) => ({ value: p.name, label: p.name }))}
+                  options={(geo?.provinces || []).map((p) => ({ value: p.name, label: geoLabel(p.name, locale) }))}
                 />
               </Field>
-              <Field label="City">
-                <AppSelect tone="store" value={city} onChange={setCity} options={cities.map((c) => ({ value: c, label: c }))} />
+              <Field label={t("city")}>
+                <AppSelect
+                  tone="store"
+                  value={city}
+                  onChange={setCity}
+                  options={cities.map((c) => ({ value: c, label: geoLabel(c, locale) }))}
+                />
               </Field>
             </div>
-            <Field label="Area / town">
-              <input value={area} onChange={(e) => setArea(e.target.value)} placeholder="Neighbourhood" className={field} />
+            <Field label={t("area")}>
+              <input value={area} onChange={(e) => setArea(e.target.value)} placeholder={t("areaPlaceholder")} className={field} />
             </Field>
-            <Field label="Street / house">
+            <Field label={t("street")}>
               <input
                 required
                 data-testid="checkout-street"
                 dir="auto"
                 value={street}
                 onChange={(e) => setStreet(e.target.value)}
-                placeholder="House no., street"
+                placeholder={t("streetPlaceholder")}
                 className={field}
               />
             </Field>
-            <Field label="Landmark">
-              <input value={landmark} onChange={(e) => setLandmark(e.target.value)} placeholder="Near mosque, school…" className={field} />
+            <Field label={t("landmark")}>
+              <input value={landmark} onChange={(e) => setLandmark(e.target.value)} placeholder={t("landmarkPlaceholder")} className={field} />
             </Field>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Delivery notes">
+              <Field label={t("deliveryNotes")}>
                 <textarea
                   value={deliveryInstructions}
                   onChange={(e) => setDeliveryInstructions(e.target.value)}
-                  placeholder="Gate code, timing…"
+                  placeholder={t("deliveryPlaceholder")}
                   className={`${field} min-h-[4.25rem] resize-y`}
                   rows={2}
                 />
               </Field>
-              <Field label="Order note">
+              <Field label={t("orderNote")}>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Anything else?"
+                  placeholder={t("orderNotePlaceholder")}
                   className={`${field} min-h-[4.25rem] resize-y`}
                   rows={2}
                 />
@@ -301,37 +373,27 @@ export function CheckoutForm() {
             </div>
           </Card>
 
-          <Card step="3" title="Preferences">
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-[#f6f7f5] px-4 py-3">
-              <input
-                type="checkbox"
-                checked={callBeforeDelivery}
-                onChange={(e) => setCallBeforeDelivery(e.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-[#1f8a4c]"
-              />
+          <Card step="3" title={t("preferences")}>
+            <div className="flex items-start justify-between gap-3 rounded-2xl bg-[#f6f7f5] px-4 py-3">
               <span>
                 <span className="flex items-center gap-1.5 text-sm font-medium text-ink">
                   <PhoneCall className="h-3.5 w-3.5 text-brand" />
-                  Call before delivery
+                  {t("callBefore")}
                 </span>
-                <span className="mt-0.5 block text-xs text-ink-muted">We’ll ring before the rider leaves the area.</span>
+                <span className="mt-0.5 block text-xs text-ink-muted">{t("callBeforeHint")}</span>
               </span>
-            </label>
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-[#f6f7f5] px-4 py-3">
-              <input
-                type="checkbox"
-                checked={whatsappOptIn}
-                onChange={(e) => setWhatsappOptIn(e.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-[#1f8a4c]"
-              />
+              <Switch on={callBeforeDelivery} onChange={() => setCallBeforeDelivery((v) => !v)} label={t("callBefore")} />
+            </div>
+            <div className="flex items-start justify-between gap-3 rounded-2xl bg-[#f6f7f5] px-4 py-3">
               <span>
                 <span className="flex items-center gap-1.5 text-sm font-medium text-ink">
                   <MessageCircle className="h-3.5 w-3.5 text-brand" />
-                  WhatsApp updates
+                  {t("whatsapp")}
                 </span>
-                <span className="mt-0.5 block text-xs text-ink-muted">Order status on the number above.</span>
+                <span className="mt-0.5 block text-xs text-ink-muted">{t("whatsappHint")}</span>
               </span>
-            </label>
+              <Switch on={whatsappOptIn} onChange={() => setWhatsappOptIn((v) => !v)} label={t("whatsapp")} />
+            </div>
             <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-[#f6f7f5] px-4 py-3">
               <input
                 type="checkbox"
@@ -341,15 +403,18 @@ export function CheckoutForm() {
                 className="mt-0.5 h-4 w-4 accent-[#1f8a4c]"
               />
               <span className="text-sm text-ink">
-                I agree to the{" "}
+                {t("agree")}{" "}
                 <Link href="/terms" className="font-medium text-brand-dark underline-offset-2 hover:underline">
-                  terms
+                  {t("terms")}
                 </Link>
               </span>
             </label>
           </Card>
 
-          <Card step="4" title="Confirm with OTP" hint="We send a code to the mobile above before the order is reserved.">
+          {skipOtp ? (
+            <Card step="4" title={t("otpTitle")} hint={t("otpSkipped")} />
+          ) : (
+          <Card step="4" title={t("otpTitle")} hint={t("otpHint")}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
                 type="button"
@@ -357,7 +422,7 @@ export function CheckoutForm() {
                 className="h-11 shrink-0 rounded-full bg-[#f3f5f2] px-5 text-sm font-medium transition hover:bg-[#e8ece8]"
                 onClick={() => void sendOtp()}
               >
-                {otpSent ? "Resend code" : "Send code"}
+                {otpSent ? t("resendCode") : t("sendCode")}
               </button>
               <input
                 value={otp}
@@ -371,6 +436,7 @@ export function CheckoutForm() {
               />
             </div>
           </Card>
+          )}
 
           {message ? (
             <p className={`px-1 text-sm ${message.toLowerCase().includes("could not") || message.startsWith("Please") ? "text-red-600" : "text-ink-muted"}`}>
@@ -385,7 +451,7 @@ export function CheckoutForm() {
 
         <aside className="lg:sticky lg:top-24">
           <div className="rounded-[1.5rem] bg-white p-5 shadow-[0_10px_36px_rgba(17,17,17,0.04)] ring-1 ring-black/[0.04] md:p-6">
-            <h2 className="text-base font-semibold tracking-tight">Your bag</h2>
+            <h2 className="text-base font-semibold tracking-tight">{t("bag")}</h2>
             <ul className="mt-4 space-y-4">
               {cart.lines.map((line) => (
                 <li key={line.sku} className="flex gap-3">
@@ -410,19 +476,19 @@ export function CheckoutForm() {
             </div>
             <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between text-ink-muted">
-                <dt>Subtotal</dt>
+                <dt>{c("subtotal")}</dt>
                 <dd>{formatPkr(cart.subtotal)}</dd>
               </div>
               <div className="flex justify-between text-ink-muted">
-                <dt>Shipping</dt>
-                <dd>{cart.shipping ? formatPkr(cart.shipping) : "Free"}</dd>
+                <dt>{c("shipping")}</dt>
+                <dd>{cart.shipping ? formatPkr(cart.shipping) : c("free")}</dd>
               </div>
               <div className="flex justify-between pt-2 text-base font-semibold">
-                <dt>Collect on delivery</dt>
+                <dt>{t("collect")}</dt>
                 <dd>{formatPkr(cart.total)}</dd>
               </div>
             </dl>
-            <p className="mt-4 text-xs leading-relaxed text-ink-muted">Pay the rider in cash. No card needed. We confirm by phone or OTP first.</p>
+            <p className="mt-4 text-xs leading-relaxed text-ink-muted">{t("payRider")}</p>
           </div>
         </aside>
       </div>

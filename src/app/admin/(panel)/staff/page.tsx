@@ -4,8 +4,10 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Plus, RotateCcw, X } from "lucide-react";
 import {
   AdminModal,
+  AdminHeaderAction,
   AdminPageHeader,
   AdminSearch,
+  AdminTable,
   ConfirmDialog,
   EmptyNote,
   SingleSelect,
@@ -16,6 +18,7 @@ import {
   rowBtnDanger,
 } from "@/components/admin/ui";
 import { AppSelect } from "@/components/ui/app-select";
+import { SwitchTrack } from "@/components/ui/switch";
 
 type Staff = { id: string; name: string; email: string; role: string; isActive: boolean; lastLoginAt?: string };
 
@@ -121,12 +124,7 @@ export default function StaffPage() {
       <AdminPageHeader
         title="Staff"
         description={`${rows.length} people who can open this workspace`}
-        actions={
-          <button type="button" onClick={openNew} className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-medium text-white">
-            <Plus className="h-4 w-4" />
-            Invite staff
-          </button>
-        }
+        actions={<AdminHeaderAction icon={Plus} label="Invite staff" onClick={openNew} />}
       />
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--admin-line)] bg-white p-3 shadow-sm">
         <AdminSearch value={query} onChange={setQuery} placeholder="Search name or email" />
@@ -151,6 +149,7 @@ export default function StaffPage() {
       {!visible.length ? (
         <EmptyNote>No staff match.</EmptyNote>
       ) : (
+        <AdminTable>
         <table>
           <thead>
             <tr>
@@ -196,6 +195,7 @@ export default function StaffPage() {
             ))}
           </tbody>
         </table>
+        </AdminTable>
       )}
 
       {editing ? (
@@ -244,9 +244,7 @@ export default function StaffPage() {
                 className={`flex h-11 w-full items-center justify-between rounded-xl border px-3.5 text-sm ${form.isActive ? "border-brand bg-brand-mist text-brand-dark" : "border-[#e7ebe8] bg-[#f7f8f7] text-ink-muted"}`}
               >
                 {form.isActive ? "Can sign in" : "Deactivated"}
-                <span className={`h-5 w-9 rounded-full p-0.5 ${form.isActive ? "bg-brand" : "bg-[#d5ddd7]"}`}>
-                  <span className={`block h-4 w-4 rounded-full bg-white transition ${form.isActive ? "translate-x-4" : ""}`} />
-                </span>
+                <SwitchTrack on={form.isActive} />
               </button>
               {formError ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p> : null}
             </div>

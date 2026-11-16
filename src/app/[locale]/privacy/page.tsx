@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/storefront/legal-page";
 import { BRAND } from "@/shared/constants";
+import { getPublicSettings } from "@/server/modules/admin/settings.service";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
+  const { name } = await getPublicSettings();
   return {
-    title: locale === "ur" ? "پرائیویسی — Agile Sole" : "Privacy — Agile Sole",
+    title: locale === "ur" ? `پرائیویسی — ${name}` : `Privacy — ${name}`,
     description: BRAND.positioning.en,
   };
 }

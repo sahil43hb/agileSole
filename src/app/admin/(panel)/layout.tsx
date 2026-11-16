@@ -3,6 +3,7 @@ import { requireAdminPage } from "@/server/lib/require-admin";
 import { AdminShell } from "@/components/admin/shell";
 import { getPublicSettings } from "@/server/modules/admin/settings.service";
 import { BrandIconSync } from "@/components/brand/brand-icon-sync";
+import { StoreIdentityProvider } from "@/components/store-identity";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +12,11 @@ export default async function AdminPanelLayout({ children }: { children: ReactNo
   return (
     <>
       <BrandIconSync src={settings.logo} />
-      <AdminShell staff={staff} logoSrc={settings.logo}>
-        {children}
-      </AdminShell>
+      <StoreIdentityProvider value={settings}>
+        <AdminShell staff={staff} logoSrc={settings.logo} storeName={settings.name}>
+          {children}
+        </AdminShell>
+      </StoreIdentityProvider>
     </>
   );
 }

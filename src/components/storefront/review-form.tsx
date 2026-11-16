@@ -2,17 +2,13 @@
 
 import { FormEvent, useState } from "react";
 import { Star } from "lucide-react";
-
-const FITS = [
-  { value: "true" as const, label: "True to size" },
-  { value: "small" as const, label: "Runs small" },
-  { value: "large" as const, label: "Runs large" },
-];
+import { useTranslations } from "next-intl";
 
 const field =
   "mt-1 w-full rounded-xl border-0 bg-[#f3f5f2] px-3.5 py-2.5 text-sm outline-none ring-1 ring-transparent transition placeholder:text-ink-faint focus:bg-white focus:ring-brand/40";
 
 export function ReviewForm({ slug, wide = false }: { slug: string; wide?: boolean }) {
+  const t = useTranslations("reviewsUi");
   const [authorName, setAuthorName] = useState("");
   const [rating, setRating] = useState(5);
   const [title, setTitle] = useState("");
@@ -41,7 +37,7 @@ export function ReviewForm({ slug, wide = false }: { slug: string; wide?: boolea
     setTitle("");
     setBody("");
     setOk(true);
-    setStatus("Thanks — we publish reviews after a quick check.");
+    setStatus(t("thanks"));
   }
 
   return (
@@ -53,15 +49,15 @@ export function ReviewForm({ slug, wide = false }: { slug: string; wide?: boolea
     >
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-dark">Your pair</p>
-          <h3 className="mt-0.5 text-lg font-semibold tracking-tight">Write a review</h3>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-dark">{t("yourPair")}</p>
+          <h3 className="mt-0.5 text-lg font-semibold tracking-tight">{t("write")}</h3>
         </div>
-        <p className="hidden text-xs text-ink-muted sm:block">Stars, fit, and a short note.</p>
+        <p className="hidden text-xs text-ink-muted sm:block">{t("writeHint")}</p>
       </div>
 
       <div className={`mt-4 grid gap-4 ${wide ? "sm:grid-cols-2" : ""}`}>
         <div>
-          <p className="text-xs font-medium text-ink-muted">Rating</p>
+          <p className="text-xs font-medium text-ink-muted">{t("rating")}</p>
           <div className="mt-1 flex">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
@@ -77,9 +73,13 @@ export function ReviewForm({ slug, wide = false }: { slug: string; wide?: boolea
           </div>
         </div>
         <div>
-          <p className="text-xs font-medium text-ink-muted">Fit</p>
+          <p className="text-xs font-medium text-ink-muted">{t("fit")}</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {FITS.map((option) => (
+            {([
+              { value: "true" as const, label: t("true") },
+              { value: "small" as const, label: t("runsSmall") },
+              { value: "large" as const, label: t("runsLarge") },
+            ]).map((option) => (
               <button
                 key={option.value}
                 type="button"
@@ -97,31 +97,31 @@ export function ReviewForm({ slug, wide = false }: { slug: string; wide?: boolea
 
       <div className={`mt-3 grid gap-3 ${wide ? "sm:grid-cols-2" : ""}`}>
         <label className="block text-xs font-medium text-ink-muted">
-          Name
+          {t("name")}
           <input
             required
             dir="auto"
             value={authorName}
             onChange={(e) => setAuthorName(e.target.value)}
-            placeholder="Your name"
+            placeholder={t("name")}
             className={field}
           />
         </label>
         <label className="block text-xs font-medium text-ink-muted">
-          Title
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="A short headline" className={field} />
+          {t("title")}
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("headline")} className={field} />
         </label>
       </div>
 
       <label className="mt-3 block text-xs font-medium text-ink-muted">
-        Review
+        {t("review")}
         <textarea
           required
           dir="auto"
           minLength={8}
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          placeholder="How did they feel after a day in Gujranwala?"
+          placeholder={t("bodyPlaceholder")}
           className={`${field} min-h-[4.5rem] resize-y`}
           rows={wide ? 3 : 2}
         />
@@ -133,7 +133,7 @@ export function ReviewForm({ slug, wide = false }: { slug: string; wide?: boolea
           disabled={busy}
           className={`btn-primary h-10 rounded-full px-6 text-sm disabled:opacity-60 ${wide ? "min-w-[10rem]" : "w-full"}`}
         >
-          {busy ? "Sending…" : "Submit review"}
+          {busy ? t("sending") : t("submit")}
         </button>
         {status ? <p className={`text-sm ${ok ? "text-brand-dark" : "text-red-600"}`}>{status}</p> : null}
       </div>

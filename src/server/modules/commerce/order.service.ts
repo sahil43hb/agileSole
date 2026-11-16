@@ -171,6 +171,7 @@ export async function placeOrder(guestId: string, raw: unknown, opts?: { skipOtp
       sizeEu: l.sizeEu,
       qty: l.qty,
       price: l.price,
+      cost: l.cost || 0,
       image: l.image,
     })),
     amounts: { subtotal, shipping, discount, tax: 0, total, currency: "PKR" },
@@ -193,7 +194,7 @@ export async function placeOrder(guestId: string, raw: unknown, opts?: { skipOtp
       {
         from: "draft",
         to: "pending_confirmation",
-        actorType: opts?.skipOtp ? "staff" : "customer",
+        actorType: opts?.channel && opts.channel !== "web" ? "staff" : "customer",
         actorId: opts?.actorId || guestId,
         note: "COD order placed",
         customerVisible: true,
@@ -209,6 +210,14 @@ export async function placeOrder(guestId: string, raw: unknown, opts?: { skipOtp
   try {
     const { notifyOrder } = await import("@/server/modules/notify/notify.service");
     await notifyOrder(publicOrder as Parameters<typeof notifyOrder>[0], "order_placed");
+    const { notifyAdminOrderPlaced, notifyAdminLowStock } = await import("@/server/modules/admin/admin-notice.service");
+    notifyAdminOrderPlaced(publicOrder as Parameters<typeof notifyAdminOrderPlaced>[0]);
+    for (const line of cart.lines) {
+      const live = await hydrateSku(line.sku, input.locale || "en");
+      if (live && live.available <= 2) {
+        notifyAdminLowStock({ sku: line.sku, title: live.title, available: live.available });
+      }
+    }
   } catch (err) {
     console.error(err);
   }
@@ -389,6 +398,10 @@ export async function transitionOrder(
   try {
     const { notifyOrder } = await import("@/server/modules/notify/notify.service");
     await notifyOrder(publicOrder as Parameters<typeof notifyOrder>[0]);
+    if (to === "cancelled" && actorType === "customer") {
+      const { notifyAdminOrderCancelled } = await import("@/server/modules/admin/admin-notice.service");
+      notifyAdminOrderCancelled(publicOrder as Parameters<typeof notifyAdminOrderCancelled>[0], note);
+    }
     const { writeAudit } = await import("@/server/modules/admin/audit.service");
     await writeAudit({
       actorId,
@@ -440,7 +453,7 @@ export async function customerCancel(customerId: string, orderId: string, reason
   if (!order) throw new Error("Order not found");
   if (!ownsOrder(order, { id: customerId, phone: customer.phone })) throw new Error("Order not found");
   const allowed = (CUSTOMER_CANCEL_STATUSES as readonly string[]).includes(order.status);
-  await Ticket.create({
+  const cancelTicket = await Ticket.create({
     customerId,
     orderId: String(order._id),
     orderNumber: order.number,
@@ -451,6 +464,8 @@ export async function customerCancel(customerId: string, orderId: string, reason
   order.customerCancelRequestedAt = new Date();
   await order.save();
   if (!allowed) {
+    const { notifyAdminTicket } = await import("@/server/modules/admin/admin-notice.service");
+    notifyAdminTicket(cancelTicket.toObject());
     throw new Error("This order can no longer be cancelled online. We logged a request for staff.");
   }
   return transitionOrder(String(order._id), "cancelled", customerId, reason || "Cancelled by customer", "customer");
@@ -485,6 +500,8 @@ export async function customerReturn(customerId: string, orderId: string, reason
     reason: reason || "Return / exchange",
     status: "open",
   });
+  const { notifyAdminOrderReturn } = await import("@/server/modules/admin/admin-notice.service");
+  notifyAdminOrderReturn(order.toObject(), reason);
   return toCustomerOrder(order.toObject());
 }
 

@@ -20,7 +20,7 @@ export function MobileMenu({
   return (
     <div className="fixed inset-0 z-50 bg-ink/40 md:hidden" onClick={onClose}>
       <div className="absolute inset-y-0 start-0 w-80 overflow-y-auto bg-paper p-6" onClick={(e) => e.stopPropagation()}>
-        <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">Shop</p>
+        <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">{t("shop")}</p>
         <ul className="mt-4 space-y-4 text-sm">
           <li>
             <Link href="/" onClick={onClose} className="font-medium">
@@ -46,7 +46,7 @@ export function MobileMenu({
             </li>
           ))}
         </ul>
-        <p className="mt-8 text-xs uppercase tracking-[0.14em] text-ink-faint">Collections</p>
+        <p className="mt-8 text-xs uppercase tracking-[0.14em] text-ink-faint">{t("collections")}</p>
         <ul className="mt-3 space-y-2 text-sm">
           {collections.map((col) => (
             <li key={col.slug}>
@@ -57,12 +57,12 @@ export function MobileMenu({
           ))}
           <li>
             <Link href="/lookbook" onClick={onClose}>
-              Lookbook
+              {t("lookbook")}
             </Link>
           </li>
           <li>
             <Link href="/brands" onClick={onClose}>
-              Brands
+              {t("brands")}
             </Link>
           </li>
         </ul>

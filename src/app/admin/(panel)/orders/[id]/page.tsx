@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { Banknote, Printer } from "lucide-react";
 import { formatPkr } from "@/shared/money";
-import { StatusBadge, formatAdminDate } from "@/components/admin/ui";
+import { AdminHeaderAction, AdminPageHeader, AdminTable, StatusBadge, formatAdminDate } from "@/components/admin/ui";
 
 type Order = {
   _id: string;
@@ -15,7 +16,7 @@ type Order = {
   deliveryInstructions?: string;
   callBeforeDelivery?: boolean;
   createdAt?: string;
-  items: { sku: string; title: string; color?: string; sizeEu?: string; qty: number; price: number }[];
+  items: { sku: string; title: string; color?: string; sizeEu?: string; qty: number; price: number; cost?: number }[];
   amounts: { subtotal: number; shipping: number; total: number };
   shippingAddress: { fullName: string; phone: string; street: string; city: string; province: string };
   payment: { method: string; status: string; collectAmount: number };
@@ -133,39 +134,41 @@ export default function AdminOrderDetailPage() {
         <Link href="/admin/orders" className="text-sm text-ink-muted hover:text-ink">
           ← Orders
         </Link>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1>{order.number}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-              <StatusBadge value={order.status} />
-              <StatusBadge value={order.channel} />
-              <StatusBadge value={order.payment.status === "paid" ? "paid" : "unpaid"} />
-              {order.createdAt ? <span className="text-ink-faint">{formatAdminDate(order.createdAt)}</span> : null}
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={`/admin/orders/${order._id}/pack`}
-              className="inline-flex h-10 items-center rounded-xl border border-[var(--admin-line)] bg-white px-4 text-sm"
-            >
-              Packing slip
-            </Link>
-            {order.payment.status !== "paid" ? (
-              <button
-                type="button"
-                className="h-10 rounded-xl bg-brand px-4 text-sm font-medium text-white"
-                onClick={async () => {
-                  const res = await fetch(`/api/v1/admin/orders/${params.id}/collect`, { method: "POST" });
-                  const json = await res.json();
-                  if (json.ok) setOrder(json.data.order);
-                  else setError(json.error?.message || "Could not mark collected");
-                }}
-              >
-                Mark COD collected
-              </button>
-            ) : (
-              <span className="inline-flex h-10 items-center rounded-xl bg-brand-mist px-4 text-sm text-brand-dark">COD collected</span>
-            )}
+        <div className="mt-3">
+          <AdminPageHeader
+            title={order.number}
+            actions={
+              <>
+                <AdminHeaderAction
+                  icon={Printer}
+                  label="Packing slip"
+                  href={`/admin/orders/${order._id}/pack`}
+                  variant="secondary"
+                />
+                {order.payment.status !== "paid" ? (
+                  <AdminHeaderAction
+                    icon={Banknote}
+                    label="Mark COD collected"
+                    onClick={async () => {
+                      const res = await fetch(`/api/v1/admin/orders/${params.id}/collect`, { method: "POST" });
+                      const json = await res.json();
+                      if (json.ok) setOrder(json.data.order);
+                      else setError(json.error?.message || "Could not mark collected");
+                    }}
+                  />
+                ) : (
+                  <span className="hidden h-11 items-center rounded-xl bg-brand-mist px-4 text-sm text-brand-dark sm:inline-flex">
+                    COD collected
+                  </span>
+                )}
+              </>
+            }
+          />
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            <StatusBadge value={order.status} />
+            <StatusBadge value={order.channel} />
+            <StatusBadge value={order.payment.status === "paid" ? "paid" : "unpaid"} />
+            {order.createdAt ? <span className="text-ink-faint">{formatAdminDate(order.createdAt)}</span> : null}
           </div>
         </div>
       </div>
@@ -201,7 +204,7 @@ export default function AdminOrderDetailPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <AdminTable>
         <table>
           <thead>
             <tr>
@@ -209,6 +212,8 @@ export default function AdminOrderDetailPage() {
               <th>SKU</th>
               <th>Qty</th>
               <th>Price</th>
+              <th>Cost</th>
+              <th>Profit</th>
             </tr>
           </thead>
           <tbody>
@@ -223,11 +228,17 @@ export default function AdminOrderDetailPage() {
                 <td className="font-mono text-xs text-ink-muted">{item.sku}</td>
                 <td>{item.qty}</td>
                 <td className="font-medium">{formatPkr(item.price)}</td>
+                <td className="text-ink-muted">{item.cost ? formatPkr(item.cost) : "—"}</td>
+                <td>
+                  {item.cost
+                    ? formatPkr((item.price - item.cost) * item.qty)
+                    : "—"}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </AdminTable>
 
       {actions.length ? (
         <div className="space-y-4 rounded-2xl border border-[var(--admin-line)] bg-white p-5 shadow-sm">

@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/navigation";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { AccountShell } from "@/components/storefront/account-shell";
 import { OrderTimeline } from "@/components/storefront/order-timeline";
 import { formatPkr } from "@/shared/money";
 import { CUSTOMER_CANCEL_STATUSES, CUSTOMER_RETURN_STATUSES, statusLabel } from "@/shared/order-copy";
 import { useCart } from "@/components/storefront/cart-provider";
+import { ShippingEta } from "@/components/storefront/shipping-eta";
+import { geoLabel } from "@/content/geo-pk";
 
 const field =
   "mt-1.5 w-full rounded-2xl border-0 bg-[#f3f5f2] px-4 py-3 text-sm outline-none ring-1 ring-transparent transition placeholder:text-ink-faint focus:bg-white focus:ring-brand/40";
@@ -29,6 +31,8 @@ type Order = {
 export default function AccountOrderDetailPage() {
   const params = useParams<{ id: string }>();
   const locale = useLocale();
+  const t = useTranslations("account");
+  const c = useTranslations("common");
   const router = useRouter();
   const { refresh } = useCart();
   const [order, setOrder] = useState<Order | null>(null);
@@ -68,7 +72,7 @@ export default function AccountOrderDetailPage() {
   if (!order) {
     return (
       <AccountShell>
-        <p className="text-sm text-ink-muted">Loading order…</p>
+        <p className="text-sm text-ink-muted">{t("loadingOrder")}</p>
       </AccountShell>
     );
   }
@@ -81,17 +85,22 @@ export default function AccountOrderDetailPage() {
     <AccountShell>
       <Link href="/account/orders" className="inline-flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink">
         <ArrowLeft className="h-3.5 w-3.5" />
-        Orders
+        {t("backOrders")}
       </Link>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight">{order.number}</h1>
       <p className="mt-1 text-sm text-ink-muted">
         {statusLabel(order.status, locale)}
-        {order.shippingMethod?.eta ? ` · ${order.shippingMethod.eta}` : ""}
+        {order.shippingMethod?.eta ? (
+          <>
+            {" · "}
+            <ShippingEta eta={order.shippingMethod.eta} />
+          </>
+        ) : null}
       </p>
 
       <div className="mt-6 grid items-stretch gap-4 lg:grid-cols-2">
         <div className="flex h-full flex-col rounded-[1.35rem] bg-white p-5 ring-1 ring-black/[0.04] md:p-6">
-          <h2 className="text-sm font-semibold">Timeline</h2>
+          <h2 className="text-sm font-semibold">{t("timeline")}</h2>
           <div className="mt-4 flex-1">
             <OrderTimeline status={order.status} locale={locale} shipment={order.shipment} />
           </div>
@@ -100,19 +109,19 @@ export default function AccountOrderDetailPage() {
               href={`/account/orders/${order._id}/invoice`}
               className="inline-flex h-11 items-center rounded-full bg-[#f3f5f2] px-5 text-sm font-medium hover:bg-[#e8ece8]"
             >
-              Invoice
+              {t("invoice")}
             </Link>
             <button
               type="button"
               className="inline-flex h-11 items-center rounded-full bg-[#f3f5f2] px-5 text-sm font-medium hover:bg-[#e8ece8]"
               onClick={() => void act("reorder")}
             >
-              Reorder
+              {t("reorder")}
             </button>
           </div>
         </div>
         <div className="flex h-full flex-col rounded-[1.35rem] bg-white p-5 ring-1 ring-black/[0.04] md:p-6">
-          <h2 className="text-sm font-semibold">Items</h2>
+          <h2 className="text-sm font-semibold">{t("items")}</h2>
           <ul className="mt-4 flex-1 space-y-4">
             {order.items.map((item, i) => (
               <li key={`${item.title}-${i}`} className="flex items-center gap-3">
@@ -125,7 +134,7 @@ export default function AccountOrderDetailPage() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">{item.title}</p>
                   <p className="text-xs text-ink-muted">
-                    {item.color ? `${item.color} · ` : ""}EU {item.sizeEu} × {item.qty}
+                    {item.color ? `${item.color} · ` : ""}{c("eu", { size: item.sizeEu })} × {item.qty}
                   </p>
                 </div>
                 <p className="shrink-0 text-sm font-medium">{formatPkr(item.price * item.qty)}</p>
@@ -134,15 +143,15 @@ export default function AccountOrderDetailPage() {
           </ul>
           <dl className="mt-4 space-y-1.5 border-t border-black/[0.06] pt-4 text-sm">
             <div className="flex justify-between text-ink-muted">
-              <dt>Subtotal</dt>
-              <dd>{formatPkr(order.amounts.subtotal)}</dd>
-            </div>
-            <div className="flex justify-between text-ink-muted">
-              <dt>Shipping</dt>
-              <dd>{order.amounts.shipping ? formatPkr(order.amounts.shipping) : "Free"}</dd>
-            </div>
-            <div className="flex justify-between pt-1 font-semibold">
-              <dt>COD</dt>
+              <dt>{c("subtotal")}</dt>
+                <dd>{formatPkr(order.amounts.subtotal)}</dd>
+              </div>
+              <div className="flex justify-between text-ink-muted">
+                <dt>{c("shipping")}</dt>
+                <dd>{order.amounts.shipping ? formatPkr(order.amounts.shipping) : c("free")}</dd>
+              </div>
+              <div className="flex justify-between pt-1 font-semibold">
+                <dt>{c("cod")}</dt>
               <dd>{formatPkr(collect)}</dd>
             </div>
           </dl>
@@ -151,7 +160,7 @@ export default function AccountOrderDetailPage() {
             <span>
               <span className="font-medium text-ink">{order.shippingAddress.fullName}</span>
               <br />
-              {order.shippingAddress.street}, {order.shippingAddress.city}
+              {order.shippingAddress.street}, {geoLabel(order.shippingAddress.city, locale)}
             </span>
           </p>
         </div>
@@ -161,11 +170,11 @@ export default function AccountOrderDetailPage() {
         <div className="flex h-full flex-col rounded-[1.35rem] bg-white p-5 ring-1 ring-black/[0.04] md:p-6">
           {canCancel || canReturn ? (
             <>
-              <p className="text-sm font-semibold">Need to change this order?</p>
+              <p className="text-sm font-semibold">{t("needChange")}</p>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Optional note"
+                placeholder={t("optionalNote")}
                 className={`${field} min-h-[6.5rem] flex-1 resize-y`}
                 rows={3}
               />
@@ -176,7 +185,7 @@ export default function AccountOrderDetailPage() {
                     className="h-11 rounded-full px-5 text-sm font-medium ring-1 ring-black/[0.08] hover:bg-[#f3f5f2]"
                     onClick={() => void act("cancel")}
                   >
-                    Cancel this order
+                    {t("cancelOrder")}
                   </button>
                 ) : null}
                 {canReturn ? (
@@ -185,13 +194,13 @@ export default function AccountOrderDetailPage() {
                     className="h-11 rounded-full px-5 text-sm font-medium ring-1 ring-black/[0.08] hover:bg-[#f3f5f2]"
                     onClick={() => void act("return")}
                   >
-                    Request return / exchange
+                    {t("requestReturn")}
                   </button>
                 ) : null}
               </div>
             </>
           ) : (
-            <p className="text-sm text-ink-muted">This order can no longer be cancelled from here. Message the shop if you need help.</p>
+            <p className="text-sm text-ink-muted">{t("cannotCancel")}</p>
           )}
         </div>
         <form
@@ -211,16 +220,16 @@ export default function AccountOrderDetailPage() {
               }),
             });
             const json = await res.json();
-            setMessage(json.ok ? "Message sent to the shop." : json.error?.message);
+            setMessage(json.ok ? t("messageSent") : json.error?.message);
             form.reset();
           }}
         >
           <label className="flex flex-1 flex-col text-xs font-medium text-ink-muted">
-            Message the shop about this order
+            {t("messageShop")}
             <textarea name="ticket" required className={`${field} min-h-[6.5rem] flex-1 resize-y`} rows={3} />
           </label>
           <button type="submit" className="btn-primary mt-3 h-11 w-fit rounded-full px-6">
-            Send
+            {c("send")}
           </button>
         </form>
       </div>

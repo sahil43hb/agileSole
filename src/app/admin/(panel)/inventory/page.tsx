@@ -7,6 +7,7 @@ import {
   AdminModal,
   AdminPageHeader,
   AdminSearch,
+  AdminTable,
   EmptyNote,
   MultiSelect,
   SingleSelect,
@@ -179,6 +180,7 @@ export default function InventoryPage() {
       {!visible.length ? (
         <EmptyNote>No SKUs match these filters.</EmptyNote>
       ) : (
+        <AdminTable>
         <table>
           <thead>
             <tr>
@@ -219,6 +221,7 @@ export default function InventoryPage() {
             ))}
           </tbody>
         </table>
+        </AdminTable>
       )}
 
       {editing ? (

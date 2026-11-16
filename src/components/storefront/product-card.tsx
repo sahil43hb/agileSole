@@ -1,6 +1,7 @@
 "use client";
 
 import { Heart } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type { PublicProduct } from "@/server/modules/catalog/product.service";
 import { formatPkr } from "@/shared/money";
@@ -18,6 +19,9 @@ export function ProductCard({
   purchased?: boolean;
   quickAdd?: boolean;
 }) {
+  const t = useTranslations("pdp");
+  const c = useTranslations("common");
+  const w = useTranslations("wishlist");
   const image = product.images[0];
   const hover = product.images[1] || image;
   const { has, toggle } = useWishlist();
@@ -63,11 +67,11 @@ export function ProductCard({
               </span>
             ) : null}
             {!product.inStock ? (
-              <span className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-medium">Sold out</span>
+              <span className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-medium">{c("soldOut")}</span>
             ) : null}
             {purchased ? (
               <span className="rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink shadow-sm">
-                Bought
+                {w("bought")}
               </span>
             ) : null}
           </div>
@@ -96,7 +100,7 @@ export function ProductCard({
       </Link>
       <button
         type="button"
-        aria-label="Wishlist"
+        aria-label={t("wishlist")}
         onClick={() => toggle(product.slug)}
         className={`absolute end-2.5 top-2.5 flex items-center justify-center rounded-full bg-white/95 text-ink shadow-sm backdrop-blur transition hover:scale-105 ${compact ? "h-8 w-8" : "h-9 w-9"}`}
       >
@@ -104,7 +108,7 @@ export function ProductCard({
       </button>
       {quickAdd ? (
         <div className="px-0.5">
-          <QuickAddButton product={product} label={purchased ? "Buy again" : "Add to bag"} />
+          <QuickAddButton product={product} label={purchased ? c("buyAgain") : c("addToBag")} />
         </div>
       ) : null}
     </div>

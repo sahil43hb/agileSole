@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ShoppingBag, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type { PublicProduct } from "@/server/modules/catalog/product.service";
 import { formatPkr } from "@/shared/money";
@@ -9,11 +10,12 @@ import { useCart } from "./cart-provider";
 
 export function QuickAddButton({
   product,
-  label = "Add to bag",
+  label,
 }: {
   product: PublicProduct;
   label?: string;
 }) {
+  const c = useTranslations("common");
   const { add } = useCart();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -44,7 +46,7 @@ export function QuickAddButton({
         className="mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-ink text-[13px] font-medium text-paper transition hover:bg-[#222] disabled:cursor-not-allowed disabled:opacity-40"
       >
         <ShoppingBag className="h-3.5 w-3.5" />
-        {soldOut ? "Sold out" : busy ? "Adding…" : label}
+        {soldOut ? c("soldOut") : busy ? c("adding") : label || c("addToBag")}
       </button>
       {error && !open ? <p className="mt-1.5 text-xs text-ink-muted">{error}</p> : null}
       {open ? (
@@ -61,6 +63,8 @@ export function QuickAddButton({
 }
 
 function QuickAddSheet({ product, onClose }: { product: PublicProduct; onClose: () => void }) {
+  const t = useTranslations("pdp");
+  const c = useTranslations("common");
   const { add } = useCart();
   const [color, setColor] = useState(product.colors[0]?.name || "");
   const [size, setSize] = useState("");
@@ -92,11 +96,11 @@ function QuickAddSheet({ product, onClose }: { product: PublicProduct; onClose: 
   async function submit() {
     if (!size || !selected) {
       setPulse(true);
-      setError("Select a size");
+      setError(c("selectSize"));
       return;
     }
     if (selected.onHand <= 0) {
-      setError("That size is out of stock");
+      setError(t("outSize"));
       return;
     }
     setBusy(true);
@@ -132,12 +136,12 @@ function QuickAddSheet({ product, onClose }: { product: PublicProduct; onClose: 
             <p className="text-sm font-semibold tracking-tight">{product.title}</p>
             <p className="mt-0.5 text-sm">{formatPkr(price)}</p>
             <Link href={`/product/${product.slug}`} className="mt-1 inline-block text-xs font-medium text-brand-dark" onClick={onClose}>
-              View details
+              {c("viewDetails")}
             </Link>
           </div>
           <button
             type="button"
-            aria-label="Close"
+            aria-label={c("close")}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f3f5f2]"
             onClick={onClose}
           >
@@ -148,7 +152,7 @@ function QuickAddSheet({ product, onClose }: { product: PublicProduct; onClose: 
         {product.colors.length > 1 ? (
           <div className="mt-5">
             <p className="text-xs font-medium text-ink-muted">
-              Color <span className="text-ink">{color}</span>
+              {t("color")} <span className="text-ink">{color}</span>
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {product.colors.map((c) => (
@@ -173,7 +177,7 @@ function QuickAddSheet({ product, onClose }: { product: PublicProduct; onClose: 
         ) : null}
 
         <div className={`mt-5 ${pulse ? "rounded-2xl ring-2 ring-brand ring-offset-2" : ""}`}>
-          <p className="text-xs font-medium text-ink-muted">EU size</p>
+          <p className="text-xs font-medium text-ink-muted">{t("euSize")}</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {sizes.map((s) => {
               const variant = product.variants.find((v) => v.sizeEu === s && (!color || v.color === color));
@@ -207,7 +211,7 @@ function QuickAddSheet({ product, onClose }: { product: PublicProduct; onClose: 
           onClick={() => void submit()}
           className="btn-primary mt-5 h-12 w-full rounded-full disabled:opacity-60"
         >
-          {busy ? "Adding…" : "Add to bag"}
+          {busy ? c("adding") : c("addToBag")}
         </button>
       </div>
     </div>

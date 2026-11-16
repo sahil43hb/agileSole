@@ -16,12 +16,18 @@ function AdminLoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [logoSrc, setLogoSrc] = useState(DEFAULT_LOGO);
+  const [storeName, setStoreName] = useState("Agile Sole");
+  const [storeCity, setStoreCity] = useState("Gujranwala");
 
   useEffect(() => {
     fetch("/api/v1/settings/public")
       .then((r) => r.json())
       .then((j) => {
-        if (j.ok && j.data?.logo) setLogoSrc(j.data.logo);
+        if (j.ok && j.data) {
+          if (j.data.logo) setLogoSrc(j.data.logo);
+          if (j.data.name) setStoreName(j.data.name);
+          if (j.data.city) setStoreCity(j.data.city);
+        }
       })
       .catch(() => undefined);
   }, []);
@@ -59,7 +65,7 @@ function AdminLoginForm() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(31,166,74,0.28),transparent_55%)]" />
         <div className="relative flex h-full flex-col justify-between p-10 text-white">
           <div className="inline-flex w-fit rounded-2xl bg-white/95 px-4 py-3 shadow-sm">
-            <Wordmark src={logoSrc} />
+            <Wordmark src={logoSrc} alt={storeName} />
           </div>
           <div className="max-w-md space-y-4">
             <p className="text-xs font-medium uppercase tracking-[0.28em] text-brand-light">Admin & staff</p>
@@ -68,7 +74,7 @@ function AdminLoginForm() {
               <span className="block text-brand-light">perfect beat.</span>
             </h2>
             <p className="max-w-sm text-sm leading-relaxed text-white/75">
-              Orders, catalog, and Gujranwala COD — one calm desk for the Agile Sole team.
+              Orders, catalog, and {storeCity} COD — one calm desk for the {storeName} team.
             </p>
           </div>
         </div>
@@ -82,7 +88,7 @@ function AdminLoginForm() {
 
         <div className="relative w-full max-w-[420px]">
           <div className="mb-8 lg:hidden">
-            <Wordmark src={logoSrc} />
+            <Wordmark src={logoSrc} alt={storeName} />
           </div>
 
           <div className="rounded-3xl border border-white/80 bg-paper/80 p-7 shadow-[0_24px_80px_rgba(17,17,17,0.08)] backdrop-blur-xl sm:p-9">
@@ -92,7 +98,7 @@ function AdminLoginForm() {
             </div>
             <h1 className="mt-5 text-3xl font-semibold tracking-tight text-ink">Welcome back</h1>
             <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-              Sign in as owner or staff to manage Agile Sole.
+              Sign in as owner or staff to manage {storeName}.
             </p>
 
             <form onSubmit={onSubmit} className="mt-8 space-y-5">
@@ -156,7 +162,9 @@ function AdminLoginForm() {
             </form>
           </div>
 
-          <p className="mt-6 text-center text-xs text-ink-faint">Agile Sole · Gujranwala · Admin & staff</p>
+          <p className="mt-6 text-center text-xs text-ink-faint">
+            {storeName} · {storeCity} · Admin & staff
+          </p>
         </div>
       </main>
     </div>

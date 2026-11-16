@@ -9,12 +9,13 @@ export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
+  const { name, city } = await getPublicSettings();
   return {
     title: locale === "ur" ? "برانڈز" : "Brands",
     description:
       locale === "ur"
-        ? "ایجائیل سول اور وہ لیبل جو ہم گوجرانوالہ سے سٹاک کرتے ہیں۔"
-        : "Agile Sole and the labels we stock from Gujranwala.",
+        ? `${name} اور وہ لیبل جو ہم ${city} سے سٹاک کرتے ہیں۔`
+        : `${name} and the labels we stock from ${city}.`,
   };
 }
 

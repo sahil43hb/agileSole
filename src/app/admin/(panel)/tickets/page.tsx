@@ -6,6 +6,7 @@ import { CalendarDays, RotateCcw, X } from "lucide-react";
 import {
   AdminModal,
   AdminPageHeader,
+  AdminTable,
   EmptyNote,
   StatusBadge,
   formatAdminDate,
@@ -41,10 +42,23 @@ export default function AdminTicketsPage() {
   const [open, setOpen] = useState<Ticket | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
+  function loadTickets() {
     fetch("/api/v1/admin/tickets")
       .then((r) => r.json())
       .then((j) => j.ok && setTickets(j.data.tickets));
+  }
+
+  useEffect(() => {
+    loadTickets();
+  }, []);
+
+  useEffect(() => {
+    function onLive(e: Event) {
+      const type = (e as CustomEvent<{ type?: string }>).detail?.type || "";
+      if (type === "ticket_open" || type === "order_return" || type === "order_cancelled") loadTickets();
+    }
+    window.addEventListener("as-admin-live", onLive);
+    return () => window.removeEventListener("as-admin-live", onLive);
   }, []);
 
   const visible = useMemo(
@@ -124,6 +138,7 @@ export default function AdminTicketsPage() {
       {!visible.length ? (
         <EmptyNote>No tickets in this filter.</EmptyNote>
       ) : (
+        <AdminTable>
         <table>
           <thead>
             <tr>
@@ -179,6 +194,7 @@ export default function AdminTicketsPage() {
             ))}
           </tbody>
         </table>
+        </AdminTable>
       )}
 
       {open ? (

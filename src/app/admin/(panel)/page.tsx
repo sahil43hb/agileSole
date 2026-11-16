@@ -48,7 +48,7 @@ export default async function AdminHomePage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <div className="rounded-2xl border border-[var(--admin-line)] bg-white p-5 shadow-sm">
           <div className="flex items-center gap-2 text-ink-faint">
             <Wallet className="h-4 w-4" />
@@ -63,6 +63,11 @@ export default async function AdminHomePage() {
           </div>
           <p className="mt-3 text-3xl font-semibold tracking-tight">{formatPkr(snapshot?.collectedCod || 0)}</p>
         </div>
+        <Link href="/admin/reports" className="rounded-2xl border border-[var(--admin-line)] bg-white p-5 shadow-sm xl:col-span-1">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">Gross profit · 7 days</p>
+          <p className="mt-3 text-3xl font-semibold tracking-tight">{formatPkr(snapshot?.profit7d || 0)}</p>
+          <p className="mt-1 text-sm text-ink-muted">{snapshot?.profitMargin7d ?? 0}% margin after supplier cost. Cancelled orders excluded.</p>
+        </Link>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

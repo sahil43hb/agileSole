@@ -1,10 +1,21 @@
+html:has(.admin-app),
+html:has(.admin-app) body {
+  height: 100%;
+  max-height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 .admin-app {
   --admin-bg: #f3f5f4;
   --admin-line: #e7ebe8;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
 }
 
 .admin-app input:focus-visible,
-.admin-app button:focus-visible,
+.admin-app button:focus-visible:not(.as-switch),
 .admin-app a:focus-visible,
 .admin-app select:focus-visible,
 .admin-app textarea:focus-visible {
@@ -19,15 +30,49 @@
 }
 
 .admin-main table.variant-grid {
+  width: max-content;
+  min-width: 100%;
   overflow: visible;
   border: none;
   border-radius: 0;
   box-shadow: none;
 }
 
-.admin-main table {
+.admin-main table.variant-grid th,
+.admin-main table.variant-grid td {
+  white-space: nowrap;
+}
+
+.admin-main > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.admin-table-scroll {
+  display: block;
   width: 100%;
-  overflow: hidden;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  border-radius: 1rem;
+}
+
+.admin-table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.admin-table-scroll::-webkit-scrollbar-thumb {
+  background: #d5ddd7;
+  border-radius: 99px;
+}
+
+.admin-main table {
+  width: max-content;
+  min-width: 100%;
+  overflow: visible;
   border-collapse: separate;
   border-spacing: 0;
   border-radius: 1rem;
@@ -36,6 +81,11 @@
   text-align: left;
   font-size: 0.875rem;
   box-shadow: 0 1px 2px rgba(17, 17, 17, 0.04);
+}
+
+.admin-table-scroll th,
+.admin-table-scroll td {
+  white-space: nowrap;
 }
 
 .admin-main thead th {
@@ -58,7 +108,7 @@
   background: #fafcfb;
 }
 
-.admin-main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.admin-search-input),
+.admin-main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not(.admin-search-input),
 .admin-main select,
 .admin-main textarea {
   border-radius: 0.75rem;
@@ -88,12 +138,21 @@
   background-color: #15803d;
 }
 
-.admin-main button.bg-brand,
+.admin-main button.bg-brand:not(.as-switch),
 .admin-main a.bg-brand,
 .admin-main .btn-primary {
   border-radius: 1rem;
   font-weight: 600;
   box-shadow: 0 10px 22px rgba(31, 166, 74, 0.22);
+}
+
+.admin-main button.as-switch,
+.admin-main button.as-switch:hover,
+.admin-main button.as-switch:focus-visible {
+  border-radius: 9999px;
+  font-weight: inherit;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .admin-main button.bg-white {

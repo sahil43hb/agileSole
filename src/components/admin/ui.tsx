@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
@@ -45,6 +46,10 @@ export function RowEditButton({
   );
 }
 
+export function AdminTable({ children }: { children: ReactNode }) {
+  return <div className="admin-table-scroll">{children}</div>;
+}
+
 export function AdminPageHeader({
   title,
   description,
@@ -55,13 +60,77 @@ export function AdminPageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <h1>{title}</h1>
-        {description ? <p className="mt-1 text-sm text-ink-muted">{description}</p> : null}
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="min-w-0 truncate">{title}</h1>
+        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      {description ? <p className="mt-1 max-w-2xl text-sm text-ink-muted">{description}</p> : null}
     </div>
+  );
+}
+
+const headerActionBase =
+  "inline-flex h-11 w-11 shrink-0 items-center justify-center gap-1.5 rounded-xl text-sm font-medium transition disabled:opacity-60 sm:w-auto sm:px-4";
+
+export function AdminHeaderAction({
+  icon: Icon,
+  label,
+  href,
+  onClick,
+  type = "button",
+  variant = "primary",
+  disabled,
+  loadingLabel,
+  target,
+}: {
+  icon: LucideIcon;
+  label: string;
+  href?: string;
+  onClick?: () => void;
+  type?: "button" | "submit";
+  variant?: "primary" | "secondary";
+  disabled?: boolean;
+  loadingLabel?: string;
+  target?: string;
+}) {
+  const className = `${headerActionBase} ${
+    variant === "primary"
+      ? "bg-brand text-white hover:bg-brand-dark"
+      : "border border-[var(--admin-line)] bg-white text-ink hover:bg-[#f4f7f5]"
+  }`;
+  const text = disabled && loadingLabel ? loadingLabel : label;
+  const inner = (
+    <>
+      <Icon className="h-4 w-4" />
+      <span className="hidden sm:inline">{text}</span>
+    </>
+  );
+  if (href) {
+    if (href.startsWith("/api") || href.startsWith("http") || target === "_blank") {
+      return (
+        <a
+          href={href}
+          target={target}
+          rel={target === "_blank" ? "noreferrer" : undefined}
+          className={className}
+          aria-label={label}
+          title={label}
+        >
+          {inner}
+        </a>
+      );
+    }
+    return (
+      <Link href={href} className={className} aria-label={label} title={label}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button type={type} onClick={onClick} disabled={disabled} className={className} aria-label={label} title={label}>
+      {inner}
+    </button>
   );
 }
 
@@ -77,7 +146,7 @@ export function AdminSearch({
   placeholder: string;
 }) {
   return (
-    <label className="search-field min-w-[16rem] flex-1">
+    <label className="search-field min-w-0 w-full flex-1 sm:min-w-[16rem]">
       <Search className="search-field-icon" />
       <input
         value={value}

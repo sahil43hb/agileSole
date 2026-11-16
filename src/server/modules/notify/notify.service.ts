@@ -2,6 +2,7 @@ import { connectDb } from "@/server/db/connect";
 import { NotificationLog } from "@/server/models";
 import { statusLabel } from "@/shared/order-copy";
 import { formatPkr } from "@/shared/money";
+import { getPublicSettings } from "@/server/modules/admin/settings.service";
 
 type OrderLike = {
   number?: string;
@@ -14,44 +15,46 @@ type OrderLike = {
   shipment?: { courierName?: string; trackingNumber?: string; trackingUrl?: string };
 };
 
-const TEMPLATES: Record<string, { subject: string; body: (o: OrderLike) => string; sms: (o: OrderLike) => string }> = {
-  order_placed: {
-    subject: "Agile Sole — we have your COD order",
-    body: (o) =>
-      `Hi ${o.shippingAddress?.fullName || "there"},\n\nOrder ${o.number} is placed. Pay ${formatPkr(o.payment?.collectAmount || o.amounts?.total || 0)} cash on delivery. We will call to confirm before packing.\n\nTrack: /track-order\nAgile Sole, Gujranwala`,
-    sms: (o) => `Agile Sole: ${o.number} placed. COD ${formatPkr(o.payment?.collectAmount || 0)}. We will call to confirm.`,
-  },
-  order_confirmed: {
-    subject: "Agile Sole — order confirmed",
-    body: (o) => `Order ${o.number} is confirmed. We are preparing your pair.`,
-    sms: (o) => `Agile Sole: ${o.number} confirmed. Preparing your pair.`,
-  },
-  order_shipped: {
-    subject: "Agile Sole — your pair is on the way",
-    body: (o) => {
-      const cn = o.shipment?.trackingNumber ? `\nTracking: ${o.shipment.trackingNumber}` : "";
-      const url = o.shipment?.trackingUrl ? `\n${o.shipment.trackingUrl}` : "";
-      return `Order ${o.number} has shipped${o.shipment?.courierName ? ` with ${o.shipment.courierName}` : ""}.${cn}${url}`;
+function templates(name: string, city: string) {
+  return {
+    order_placed: {
+      subject: `${name} — we have your COD order`,
+      body: (o: OrderLike) =>
+        `Hi ${o.shippingAddress?.fullName || "there"},\n\nOrder ${o.number} is placed. Pay ${formatPkr(o.payment?.collectAmount || o.amounts?.total || 0)} cash on delivery. We will call to confirm before packing.\n\nTrack: /track-order\n${name}, ${city}`,
+      sms: (o: OrderLike) => `${name}: ${o.number} placed. COD ${formatPkr(o.payment?.collectAmount || 0)}. We will call to confirm.`,
     },
-    sms: (o) =>
-      `Agile Sole: ${o.number} shipped${o.shipment?.trackingNumber ? ` CN ${o.shipment.trackingNumber}` : ""}.`,
-  },
-  order_delivered: {
-    subject: "Agile Sole — delivered",
-    body: (o) => `Order ${o.number} was delivered. Thank you. Size exchange is in Shipping & returns.`,
-    sms: (o) => `Agile Sole: ${o.number} delivered. Enjoy the pair.`,
-  },
-  order_cancelled: {
-    subject: "Agile Sole — order cancelled",
-    body: (o) => `Order ${o.number} was cancelled. If you still want the pair, order again on the site.`,
-    sms: (o) => `Agile Sole: ${o.number} cancelled.`,
-  },
-  status_update: {
-    subject: "Agile Sole — order update",
-    body: (o) => `Order ${o.number} is now ${statusLabel(o.status || "", o.locale)}.`,
-    sms: (o) => `Agile Sole: ${o.number} is ${statusLabel(o.status || "")}.`,
-  },
-};
+    order_confirmed: {
+      subject: `${name} — order confirmed`,
+      body: (o: OrderLike) => `Order ${o.number} is confirmed. We are preparing your pair.`,
+      sms: (o: OrderLike) => `${name}: ${o.number} confirmed. Preparing your pair.`,
+    },
+    order_shipped: {
+      subject: `${name} — your pair is on the way`,
+      body: (o: OrderLike) => {
+        const cn = o.shipment?.trackingNumber ? `\nTracking: ${o.shipment.trackingNumber}` : "";
+        const url = o.shipment?.trackingUrl ? `\n${o.shipment.trackingUrl}` : "";
+        return `Order ${o.number} has shipped${o.shipment?.courierName ? ` with ${o.shipment.courierName}` : ""}.${cn}${url}`;
+      },
+      sms: (o: OrderLike) =>
+        `${name}: ${o.number} shipped${o.shipment?.trackingNumber ? ` CN ${o.shipment.trackingNumber}` : ""}.`,
+    },
+    order_delivered: {
+      subject: `${name} — delivered`,
+      body: (o: OrderLike) => `Order ${o.number} was delivered. Thank you. Size exchange is in Shipping & returns.`,
+      sms: (o: OrderLike) => `${name}: ${o.number} delivered. Enjoy the pair.`,
+    },
+    order_cancelled: {
+      subject: `${name} — order cancelled`,
+      body: (o: OrderLike) => `Order ${o.number} was cancelled. If you still want the pair, order again on the site.`,
+      sms: (o: OrderLike) => `${name}: ${o.number} cancelled.`,
+    },
+    status_update: {
+      subject: `${name} — order update`,
+      body: (o: OrderLike) => `Order ${o.number} is now ${statusLabel(o.status || "", o.locale)}.`,
+      sms: (o: OrderLike) => `${name}: ${o.number} is ${statusLabel(o.status || "")}.`,
+    },
+  } as const;
+}
 
 function templateForStatus(status: string) {
   if (status === "pending_confirmation") return "order_placed";
@@ -64,8 +67,10 @@ function templateForStatus(status: string) {
 
 export async function notifyOrder(order: OrderLike, templateKey?: string) {
   await connectDb();
-  const key = templateKey || templateForStatus(order.status || "");
-  const tpl = TEMPLATES[key] || TEMPLATES.status_update;
+  const store = await getPublicSettings();
+  const tplMap = templates(store.name, store.city);
+  const key = (templateKey || templateForStatus(order.status || "")) as keyof typeof tplMap;
+  const tpl = tplMap[key] || tplMap.status_update;
   const subject = tpl.subject;
   const body = tpl.body(order);
   const sms = tpl.sms(order);

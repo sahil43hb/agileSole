@@ -4,8 +4,10 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Plus, RotateCcw, X } from "lucide-react";
 import {
   AdminModal,
+  AdminHeaderAction,
   AdminPageHeader,
   AdminSearch,
+  AdminTable,
   ConfirmDialog,
   EmptyNote,
   RowEditButton,
@@ -102,12 +104,7 @@ export default function AdminFaqsPage() {
       <AdminPageHeader
         title="FAQs"
         description={`${faqs.length} answers for the store help page`}
-        actions={
-          <button type="button" onClick={openNew} className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-medium text-white">
-            <Plus className="h-4 w-4" />
-            Add FAQ
-          </button>
-        }
+        actions={<AdminHeaderAction icon={Plus} label="Add FAQ" onClick={openNew} />}
       />
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--admin-line)] bg-white p-3 shadow-sm">
         <AdminSearch value={query} onChange={setQuery} placeholder="Search questions" />
@@ -123,6 +120,7 @@ export default function AdminFaqsPage() {
       {!visible.length ? (
         <EmptyNote>No FAQs match.</EmptyNote>
       ) : (
+        <AdminTable>
         <table>
           <thead>
             <tr>
@@ -148,6 +146,7 @@ export default function AdminFaqsPage() {
             ))}
           </tbody>
         </table>
+        </AdminTable>
       )}
 
       {editing ? (

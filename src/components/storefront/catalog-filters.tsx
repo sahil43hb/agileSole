@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { Check, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { AppSelect } from "@/components/ui/app-select";
 
@@ -63,6 +64,8 @@ export function CatalogFilters({
   stylePath?: string;
   children: ReactNode;
 }) {
+  const t = useTranslations("shop");
+  const n = useTranslations("nav");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -116,14 +119,14 @@ export function CatalogFilters({
             onClick={() => setOpen((v) => !v)}
           >
             <SlidersHorizontal className="h-4 w-4" />
-            Filters
+            {t("filters")}
             {activeCount ? (
               <span className="rounded-full bg-ink px-1.5 text-[11px] leading-5 text-white">{activeCount}</span>
             ) : null}
             <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
           </button>
           <p className="text-sm text-ink-muted">
-            <span className="font-medium text-ink">{total}</span> {total === 1 ? "pair" : "pairs"}
+            <span className="font-medium text-ink">{total}</span> {total === 1 ? t("pair") : t("pairsWord")}
           </p>
         </div>
         <AppSelect
@@ -133,11 +136,11 @@ export function CatalogFilters({
           value={sort}
           onChange={(next) => setParam("sort", next || undefined)}
           options={[
-            { value: "all", label: "All" },
-            { value: "", label: "Featured" },
-            { value: "newest", label: "Newest" },
-            { value: "price-asc", label: "Price: low to high" },
-            { value: "price-desc", label: "Price: high to low" },
+            { value: "all", label: t("all") },
+            { value: "", label: t("featured") },
+            { value: "newest", label: t("newest") },
+            { value: "price-asc", label: t("priceLow") },
+            { value: "price-desc", label: t("priceHigh") },
           ]}
         />
       </div>
@@ -147,7 +150,7 @@ export function CatalogFilters({
           <div className="space-y-8">
             {styles?.length ? (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-faint">Style</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-faint">{t("style")}</p>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {styles.map((s) => {
                     const on = stylePath === s.href;
@@ -168,25 +171,25 @@ export function CatalogFilters({
               </div>
             ) : null}
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-faint">Who</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-faint">{t("who")}</p>
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {["men", "women", "kids", "unisex"].map((g) => (
+                {(["men", "women", "kids", "unisex"] as const).map((g) => (
                   <button
                     key={g}
                     type="button"
                     onClick={() => pickWho(g)}
-                    className={`rounded-full px-3.5 py-1.5 text-sm capitalize transition ${
+                    className={`rounded-full px-3.5 py-1.5 text-sm transition ${
                       gender === g ? "bg-ink text-paper" : "bg-[#f3f5f3] text-ink hover:bg-[#e8ece9]"
                     }`}
                   >
-                    {g}
+                    {g === "unisex" ? t("unisex") : n(g)}
                   </button>
                 ))}
               </div>
             </div>
             {sizes.length ? (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-faint">EU size</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-faint">{t("euSize")}</p>
                 <div className="mt-3 grid grid-cols-4 gap-1.5">
                   {sizes.map((s) => (
                     <button
@@ -205,7 +208,7 @@ export function CatalogFilters({
             ) : null}
             {colors.length ? (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-faint">Color</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-faint">{t("color")}</p>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {colors.map((c) => (
                     <button
@@ -227,10 +230,10 @@ export function CatalogFilters({
               </div>
             ) : null}
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-faint">Availability</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-faint">{t("availability")}</p>
               <div className="mt-2">
-                <Toggle on={inStock} label="In stock" onClick={() => setParam("inStock", inStock ? undefined : "1")} />
-                <Toggle on={onSale} label="On sale" onClick={() => setParam("onSale", onSale ? undefined : "1")} />
+                <Toggle on={inStock} label={t("inStock")} onClick={() => setParam("inStock", inStock ? undefined : "1")} />
+                <Toggle on={onSale} label={t("onSale")} onClick={() => setParam("onSale", onSale ? undefined : "1")} />
               </div>
             </div>
           </div>

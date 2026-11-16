@@ -1,10 +1,11 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 export function NewsletterForm({ dark = false }: { dark?: boolean }) {
   const locale = useLocale();
+  const t = useTranslations("footer");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
 
@@ -16,7 +17,7 @@ export function NewsletterForm({ dark = false }: { dark?: boolean }) {
       body: JSON.stringify({ email, locale }),
     });
     const json = await res.json();
-    setNote(json.ok ? "You’re on the drop list." : json.error?.message || "Could not subscribe");
+    setNote(json.ok ? t("joined") : json.error?.message || t("joinFail"));
     if (json.ok) setEmail("");
   }
 
@@ -27,7 +28,7 @@ export function NewsletterForm({ dark = false }: { dark?: boolean }) {
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="Email"
+        placeholder={t("email")}
         className={`h-12 min-w-0 flex-1 rounded-full px-5 text-sm outline-none ${
           dark
             ? "border border-white/15 bg-white/10 text-white placeholder:text-white/45 focus:border-white/40"
@@ -35,7 +36,7 @@ export function NewsletterForm({ dark = false }: { dark?: boolean }) {
         }`}
       />
       <button className="btn-primary h-12 shrink-0 rounded-full px-6" type="submit">
-        Join
+        {t("join")}
       </button>
       {note ? <p className={`w-full text-sm ${dark ? "text-white/70" : "text-ink-muted"}`}>{note}</p> : null}
     </form>

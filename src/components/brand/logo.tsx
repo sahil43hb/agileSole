@@ -18,10 +18,12 @@ export function Wordmark({
   compact = false,
   className,
   src,
+  alt,
 }: {
   compact?: boolean;
   className?: string;
   src?: string;
+  alt?: string;
 }) {
   const size = compact
     ? "h-10 w-auto max-w-[72px]"
@@ -30,7 +32,7 @@ export function Wordmark({
     <Image
       key={src || LOGO_SRC}
       src={src || LOGO_SRC}
-      alt="Agile Sole"
+      alt={alt || "Store"}
       width={640}
       height={480}
       priority

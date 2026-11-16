@@ -4,8 +4,10 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Plus, RotateCcw, X } from "lucide-react";
 import {
   AdminModal,
+  AdminHeaderAction,
   AdminPageHeader,
   AdminSearch,
+  AdminTable,
   ConfirmDialog,
   EmptyNote,
   SingleSelect,
@@ -13,6 +15,7 @@ import {
   RowEditButton,
   rowBtnDanger,
 } from "@/components/admin/ui";
+import { SwitchTrack } from "@/components/ui/switch";
 
 type Brand = {
   id: string;
@@ -136,16 +139,7 @@ export default function BrandsPage() {
       <AdminPageHeader
         title="Brands"
         description={`${rows.length} labels on the store`}
-        actions={
-          <button
-            type="button"
-            onClick={openNew}
-            className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-medium text-white"
-          >
-            <Plus className="h-4 w-4" />
-            Add brand
-          </button>
-        }
+        actions={<AdminHeaderAction icon={Plus} label="Add brand" onClick={openNew} />}
       />
 
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--admin-line)] bg-white p-3 shadow-sm">
@@ -178,6 +172,7 @@ export default function BrandsPage() {
       {!visible.length ? (
         <EmptyNote>No brands match these filters.</EmptyNote>
       ) : (
+        <AdminTable>
         <table>
           <thead>
             <tr>
@@ -231,6 +226,7 @@ export default function BrandsPage() {
             ))}
           </tbody>
         </table>
+        </AdminTable>
       )}
 
       {editing ? (
@@ -287,9 +283,7 @@ export default function BrandsPage() {
                   }`}
                 >
                   {form.isActive ? "Active on store" : "Inactive"}
-                  <span className={`h-5 w-9 rounded-full p-0.5 ${form.isActive ? "bg-brand" : "bg-[#d5ddd7]"}`}>
-                    <span className={`block h-4 w-4 rounded-full bg-white transition ${form.isActive ? "translate-x-4" : ""}`} />
-                  </span>
+                  <SwitchTrack on={form.isActive} />
                 </button>
               </div>
               {formError ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p> : null}

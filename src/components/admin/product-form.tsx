@@ -3,9 +3,11 @@
 import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { Check, ExternalLink, ImagePlus, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { AdminHeaderAction, AdminPageHeader } from "@/components/admin/ui";
 import { slugify } from "@/shared/money";
 import { AppSelect } from "@/components/ui/app-select";
+import { SwitchTrack } from "@/components/ui/switch";
 
 type Loc = { en: string; ur: string };
 type Variant = {
@@ -15,9 +17,16 @@ type Variant = {
   sizeEu?: string;
   price: number;
   compareAt?: number | null;
+  cost?: number | null;
   onHand?: number;
   isActive?: boolean;
 };
+
+type GridCell = { price: string; compareAt: string; cost: string; onHand: string; sku: string };
+
+function money(n: number) {
+  return `Rs ${Math.round(n).toLocaleString("en-PK")}`;
+}
 
 export type ProductFormValue = {
   _id?: string;
@@ -86,29 +95,29 @@ export function ProductForm({
     const set = new Set((initial?.variants || []).map((v) => v.sizeEu).filter(Boolean) as string[]);
     return set.size ? [...set] : defaultSizes;
   });
-  const [grid, setGrid] = useState<Record<string, { price: string; compareAt: string; onHand: string; sku: string }>>(
-    () => {
-      const next: Record<string, { price: string; compareAt: string; onHand: string; sku: string }> = {};
-      for (const v of initial?.variants || []) {
-        const key = `${v.color || ""}|${v.sizeEu || ""}`;
-        next[key] = {
-          price: String(v.price || ""),
-          compareAt: String(v.compareAt || ""),
-          onHand: String(v.onHand ?? 0),
-          sku: v.sku,
-        };
-      }
-      return next;
-    },
-  );
+  const [grid, setGrid] = useState<Record<string, GridCell>>(() => {
+    const next: Record<string, GridCell> = {};
+    for (const v of initial?.variants || []) {
+      const key = `${v.color || ""}|${v.sizeEu || ""}`;
+      next[key] = {
+        price: String(v.price || ""),
+        compareAt: String(v.compareAt || ""),
+        cost: v.cost != null && v.cost !== 0 ? String(v.cost) : "",
+        onHand: String(v.onHand ?? 0),
+        sku: v.sku,
+      };
+    }
+    return next;
+  });
+  const [bulkCost, setBulkCost] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   const keys = useMemo(() => colors.flatMap((c) => sizes.map((s) => `${c.name}|${s}`)), [colors, sizes]);
   const sizeOptions = gender === "kids" ? SIZES_KIDS : gender === "women" ? SIZES_WOMEN : SIZES_MEN;
 
-  function cell(key: string) {
-    return grid[key] || { price: "4990", compareAt: "", onHand: "5", sku: "" };
+  function cell(key: string): GridCell {
+    return grid[key] || { price: "4990", compareAt: "", cost: "", onHand: "5", sku: "" };
   }
 
   function generate() {
@@ -122,6 +131,7 @@ export function ProductForm({
         next[key] = {
           price: prev?.price || "4990",
           compareAt: prev?.compareAt || "",
+          cost: prev?.cost || "",
           onHand: prev?.onHand || "5",
           sku: prev?.sku || `${base}-${colorCode}-${s}`,
         };
@@ -154,6 +164,7 @@ export function ProductForm({
         sizeEu,
         price: Number(cellVal.price || 0),
         compareAt: cellVal.compareAt ? Number(cellVal.compareAt) : null,
+        cost: cellVal.cost ? Number(cellVal.cost) : null,
         onHand: Number(cellVal.onHand || 0),
         isActive: true,
       };
@@ -191,39 +202,41 @@ export function ProductForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Link href="/admin/products" className="text-sm text-ink-muted hover:text-ink">
-            ← Products
-          </Link>
-          <h1 className="mt-2">{initial?._id ? "Edit product" : "New product"}</h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            {initial?._id ? title.en || "Update this style for the store." : "Add a style, photos, and size grid."}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {initial?.slug ? (
-            <Link
-              href={`/en/product/${initial.slug}`}
-              target="_blank"
-              className="inline-flex h-11 items-center rounded-xl border border-[var(--admin-line)] bg-white px-4 text-sm"
-            >
-              View on store
-            </Link>
-          ) : null}
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex h-11 items-center rounded-xl bg-brand px-5 text-sm font-medium text-white disabled:opacity-60"
-          >
-            {saving ? "Saving…" : initial?._id ? "Save changes" : "Create product"}
-          </button>
+    <form onSubmit={onSubmit} className="space-y-6 pb-8">
+      <div>
+        <Link href="/admin/products" className="text-sm text-ink-muted hover:text-ink">
+          ← Products
+        </Link>
+        <div className="mt-2">
+          <AdminPageHeader
+            title={initial?._id ? "Edit product" : "New product"}
+            description={initial?._id ? title.en || "Update this style for the store." : "Add a style, photos, and size grid."}
+            actions={
+              <>
+                {initial?.slug ? (
+                  <AdminHeaderAction
+                    icon={ExternalLink}
+                    label="View on store"
+                    href={`/en/product/${initial.slug}`}
+                    target="_blank"
+                    variant="secondary"
+                  />
+                ) : null}
+                <AdminHeaderAction
+                  icon={Check}
+                  type="submit"
+                  label={initial?._id ? "Save changes" : "Create product"}
+                  loadingLabel="Saving…"
+                  disabled={saving}
+                />
+              </>
+            }
+          />
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-6">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="min-w-0 space-y-6">
           <section className={card}>
             <h2 className="text-sm font-semibold tracking-tight">Details</h2>
             <label className={label}>
@@ -268,7 +281,7 @@ export function ProductForm({
                 <input
                   type="file"
                   accept="image/*"
-                  className="hidden"
+                  className="sr-only"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) upload(file).catch((err) => setError(err.message));
@@ -375,7 +388,34 @@ export function ProductForm({
                 })}
               </div>
             </div>
-            <div className="overflow-x-auto rounded-xl border border-[var(--admin-line)]">
+            <div className="flex flex-wrap items-end gap-2 rounded-xl bg-[#f7f8f7] p-3">
+              <label className="min-w-[10rem] flex-1 text-[13px] font-medium text-ink-muted">
+                Cost (what you pay)
+                <input
+                  className={`${field} mt-1`}
+                  inputMode="numeric"
+                  placeholder="e.g. 2800"
+                  value={bulkCost}
+                  onChange={(e) => setBulkCost(e.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                className="h-11 rounded-xl border border-[var(--admin-line)] bg-white px-4 text-sm font-medium"
+                onClick={() => {
+                  if (!bulkCost) return;
+                  const next = { ...grid };
+                  for (const key of keys) {
+                    const prev = cell(key);
+                    next[key] = { ...prev, cost: bulkCost };
+                  }
+                  setGrid(next);
+                }}
+              >
+                Apply cost to all sizes
+              </button>
+            </div>
+            <div className="max-w-full overflow-x-auto overscroll-x-contain rounded-xl border border-[var(--admin-line)]">
               <table className="variant-grid min-w-full text-left text-sm">
                 <thead>
                   <tr>
@@ -383,6 +423,8 @@ export function ProductForm({
                     <th>EU</th>
                     <th>SKU</th>
                     <th>Price</th>
+                    <th>Cost</th>
+                    <th>Profit</th>
                     <th>Compare-at</th>
                     <th>Stock</th>
                   </tr>
@@ -391,6 +433,10 @@ export function ProductForm({
                   {keys.map((key) => {
                     const [color, size] = key.split("|");
                     const val = cell(key);
+                    const price = Number(val.price || 0);
+                    const cost = Number(val.cost || 0);
+                    const profit = price && cost ? price - cost : null;
+                    const pct = price && cost ? Math.round((profit! / price) * 100) : null;
                     return (
                       <tr key={key}>
                         <td className="whitespace-nowrap">{color}</td>
@@ -412,6 +458,23 @@ export function ProductForm({
                         <td>
                           <input
                             className="h-9 w-24 rounded-lg border border-[#e7ebe8] bg-white px-2 text-sm"
+                            value={val.cost}
+                            placeholder="0"
+                            onChange={(e) => setGrid({ ...grid, [key]: { ...val, cost: e.target.value } })}
+                          />
+                        </td>
+                        <td className="whitespace-nowrap text-xs text-ink-muted">
+                          {profit != null ? (
+                            <span className={profit < 0 ? "font-medium text-red-700" : "font-medium text-brand-dark"}>
+                              {money(profit)} · {pct}%
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td>
+                          <input
+                            className="h-9 w-24 rounded-lg border border-[#e7ebe8] bg-white px-2 text-sm"
                             value={val.compareAt}
                             onChange={(e) => setGrid({ ...grid, [key]: { ...val, compareAt: e.target.value } })}
                           />
@@ -429,7 +492,9 @@ export function ProductForm({
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-ink-faint">Generate SKUs after colors and sizes. Empty SKUs fill on save.</p>
+            <p className="text-xs text-ink-faint">
+              Cost is what you pay the supplier. Profit = selling price − cost. Saved on each order so later cost edits do not rewrite old reports.
+            </p>
           </section>
         </div>
 
@@ -484,9 +549,7 @@ export function ProductForm({
               }`}
             >
               Featured on home
-              <span className={`h-5 w-9 rounded-full p-0.5 ${featured ? "bg-brand" : "bg-[#d5ddd7]"}`}>
-                <span className={`block h-4 w-4 rounded-full bg-white transition ${featured ? "translate-x-4" : ""}`} />
-              </span>
+              <SwitchTrack on={featured} />
             </button>
           </section>
 

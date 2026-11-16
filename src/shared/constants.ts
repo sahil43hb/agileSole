@@ -11,6 +11,7 @@ export const BRAND = {
   name: "Agile Sole",
   handle: "AgileSole",
   city: "Gujranwala",
+  cityUr: "گوجرانوالہ",
   country: "PK",
   tagline: {
     en: "Every Step a Perfect Beat",
@@ -21,6 +22,10 @@ export const BRAND = {
     ur: "آرام اور انداز کے ساتھ، ایک جوڑی ایک وقت میں",
   },
 };
+
+export function brandCity(locale?: string) {
+  return locale === "ur" ? BRAND.cityUr : BRAND.city;
+}
 
 export const ORDER_STATUSES = [
   "draft",

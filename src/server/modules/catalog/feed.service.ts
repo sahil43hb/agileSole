@@ -2,7 +2,7 @@ import { connectDb } from "@/server/db/connect";
 import { Product } from "@/server/models";
 import { localizedPath, siteUrl } from "@/lib/site";
 import { pickLocale } from "@/server/lib/localized";
-import { BRAND } from "@/shared/constants";
+import { getPublicSettings } from "@/server/modules/admin/settings.service";
 
 type Variant = {
   sku: string;
@@ -23,6 +23,7 @@ function csvEscape(value: string) {
 
 export async function catalogFeedRows() {
   await connectDb();
+  const { name: storeName } = await getPublicSettings();
   const products = await Product.find({ status: "active" }).lean();
   const out: {
     id: string;
@@ -58,7 +59,7 @@ export async function catalogFeedRows() {
         image,
         availability: available > 0 ? "in stock" : "out of stock",
         price: `${Number(variant.price || 0).toFixed(2)} PKR`,
-        brand: BRAND.name,
+        brand: storeName,
         condition: "new",
         mpn: variant.sku,
         gtin: variant.gtin || "",

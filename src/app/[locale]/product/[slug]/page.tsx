@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getBySlug, listRelated } from "@/server/modules/catalog/product.service";
 import { getSizeChart } from "@/server/modules/catalog/taxonomy.service";
 import { listProductReviews } from "@/server/modules/catalog/review.service";
@@ -13,6 +13,7 @@ import { RecentlyViewed } from "@/components/storefront/recently-viewed";
 import { Breadcrumbs } from "@/components/storefront/breadcrumbs";
 import { localizedPath, siteUrl } from "@/lib/site";
 import { BRAND } from "@/shared/constants";
+import { getPublicSettings } from "@/server/modules/admin/settings.service";
 
 export const revalidate = 60;
 
@@ -56,6 +57,8 @@ export default async function ProductPage({
 }) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
+  const n = await getTranslations("nav");
+  const pdp = await getTranslations("pdp");
 
   let product = null;
   try {
@@ -66,10 +69,11 @@ export default async function ProductPage({
   if (!product) notFound();
 
   const chartCode = product.sizeChartCode || `${product.gender}-eu`;
-  const [chart, related, reviewData] = await Promise.all([
+  const [chart, related, reviewData, settings] = await Promise.all([
     getSizeChart(chartCode, locale),
     listRelated(slug, locale, 4),
     listProductReviews(slug),
+    getPublicSettings(),
   ]);
 
   const jsonLd = {
@@ -78,7 +82,7 @@ export default async function ProductPage({
     name: product.title,
     description: product.description,
     image: product.images,
-    brand: { "@type": "Brand", name: "Agile Sole" },
+    brand: { "@type": "Brand", name: settings.name },
     offers: {
       "@type": "Offer",
       priceCurrency: "PKR",
@@ -101,8 +105,8 @@ export default async function ProductPage({
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Breadcrumbs
         items={[
-          { href: "/", label: "Home" },
-          { href: `/c/${product.gender}`, label: product.gender },
+          { href: "/", label: n("home") },
+          { href: `/c/${product.gender}`, label: ["men", "women", "kids"].includes(product.gender) ? n(product.gender as "men" | "women" | "kids") : product.gender },
           { label: product.title },
         ]}
       />
@@ -132,7 +136,7 @@ export default async function ProductPage({
       </section>
       {related.length ? (
         <section className="mt-16">
-          <h2 className="text-xl font-semibold">You may also like</h2>
+          <h2 className="text-xl font-semibold">{pdp("related")}</h2>
           <div className={`mt-6 ${productGridClass}`}>
             {related.map((p) => (
               <ProductCard key={p.id} product={p} />

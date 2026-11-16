@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Banknote, ShoppingBag, Truck, X } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { formatPkr } from "@/shared/money";
@@ -7,6 +8,8 @@ import { useCart } from "./cart-provider";
 import { QtyStepper } from "./qty-stepper";
 
 export function MiniCart() {
+  const t = useTranslations("cart");
+  const c = useTranslations("common");
   const { cart, drawerOpen, closeDrawer, setQty, remove } = useCart();
   if (!drawerOpen) return null;
 
@@ -22,14 +25,18 @@ export function MiniCart() {
       >
         <div className="flex items-center justify-between px-5 py-4">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">Your bag</h2>
+            <h2 className="text-lg font-semibold tracking-tight">{t("title")}</h2>
             <p className="text-xs text-ink-muted">
-              {cart.count ? `${cart.count} item${cart.count === 1 ? "" : "s"}` : "Empty"}
+              {cart.count
+                ? cart.count === 1
+                  ? t("itemsCod", { count: cart.count })
+                  : t("itemsCodPlural", { count: cart.count })
+                : t("empty")}
             </p>
           </div>
           <button
             type="button"
-            aria-label="Close bag"
+            aria-label={t("close")}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f3f5f2] text-ink transition hover:bg-[#e8ece8]"
             onClick={closeDrawer}
           >
@@ -43,10 +50,10 @@ export function MiniCart() {
               <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f3f5f2]">
                 <ShoppingBag className="h-6 w-6 text-ink-muted" />
               </span>
-              <p className="mt-4 text-sm font-medium">Your bag is empty</p>
-              <p className="mt-1 text-sm text-ink-muted">Add a size from any pair to check out with cash on delivery.</p>
+              <p className="mt-4 text-sm font-medium">{t("emptyTitle")}</p>
+              <p className="mt-1 text-sm text-ink-muted">{t("emptyBody")}</p>
               <Link href="/shop" className="btn-primary mt-6 h-11 rounded-full px-5" onClick={closeDrawer}>
-                Shop the collection
+                {c("shopCollection")}
               </Link>
             </div>
           ) : (
@@ -55,9 +62,7 @@ export function MiniCart() {
                 <div className="mb-5 rounded-2xl bg-[#f6f7f5] px-4 py-3">
                   <div className="flex items-center gap-1.5 text-xs font-medium text-ink">
                     <Truck className="h-3.5 w-3.5 text-brand" />
-                    {remaining > 0
-                      ? `${formatPkr(remaining)} more for free delivery`
-                      : "Free delivery on this order"}
+                    {remaining > 0 ? t("freeMore", { amount: formatPkr(remaining) }) : t("freeNow")}
                   </div>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
                     <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${progress}%` }} />
@@ -98,7 +103,7 @@ export function MiniCart() {
                           className="text-xs text-ink-muted underline-offset-2 hover:text-ink hover:underline"
                           onClick={() => void remove(line.sku)}
                         >
-                          Remove
+                          {c("remove")}
                         </button>
                       </div>
                     </div>
@@ -113,27 +118,30 @@ export function MiniCart() {
           <div className="border-t border-black/[0.06] bg-[#f6f7f5] px-5 py-4">
             <dl className="space-y-1.5 text-sm">
               <div className="flex justify-between text-ink-muted">
-                <dt>Subtotal</dt>
+                <dt>{c("subtotal")}</dt>
                 <dd>{formatPkr(cart.subtotal)}</dd>
               </div>
               {cart.discount ? (
                 <div className="flex justify-between text-ink-muted">
-                  <dt>Discount{cart.promoCode ? ` (${cart.promoCode})` : ""}</dt>
+                  <dt>
+                    {c("discount")}
+                    {cart.promoCode ? ` (${cart.promoCode})` : ""}
+                  </dt>
                   <dd>−{formatPkr(cart.discount)}</dd>
                 </div>
               ) : null}
               <div className="flex justify-between text-ink-muted">
-                <dt>COD shipping</dt>
-                <dd>{cart.shipping ? formatPkr(cart.shipping) : "Free"}</dd>
+                <dt>{t("codShipping")}</dt>
+                <dd>{cart.shipping ? formatPkr(cart.shipping) : c("free")}</dd>
               </div>
               <div className="flex justify-between pt-1 text-base font-semibold">
-                <dt>Total</dt>
+                <dt>{c("total")}</dt>
                 <dd>{formatPkr(cart.total)}</dd>
               </div>
             </dl>
             <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-ink-muted">
               <Banknote className="h-3.5 w-3.5 text-brand" />
-              Pay cash when the pair arrives
+              {t("payCash")}
             </p>
             <Link
               href="/checkout"
@@ -141,10 +149,10 @@ export function MiniCart() {
               className="btn-primary mt-4 h-12 w-full rounded-full"
               onClick={closeDrawer}
             >
-              Checkout · Cash on delivery
+              {t("checkoutCod")}
             </Link>
             <Link href="/cart" className="mt-2.5 block text-center text-sm text-ink-muted hover:text-ink" onClick={closeDrawer}>
-              View bag
+              {t("viewBag")}
             </Link>
           </div>
         ) : null}

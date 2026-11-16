@@ -58,7 +58,14 @@ export async function saveAllSettings(input: {
 }) {
   await connectDb();
   const current = await getAllSettings();
-  const store = await setSetting("store", { ...current.store, ...input.store });
+  const nextStore = { ...current.store, ...input.store };
+  if (typeof nextStore.name === "string") {
+    nextStore.name = nextStore.name.trim() || STORE_DEFAULTS.name;
+  }
+  if (typeof nextStore.city === "string") {
+    nextStore.city = nextStore.city.trim() || STORE_DEFAULTS.city;
+  }
+  const store = await setSetting("store", nextStore);
   const analytics = await setSetting("analytics", { ...current.analytics, ...input.analytics });
   const payments = await setSetting("payments", { ...current.payments, ...input.payments });
   const couriers = await setSetting("couriers", { ...current.couriers, ...input.couriers });
@@ -69,7 +76,8 @@ export async function getPublicSettings() {
   try {
     const all = await getAllSettings();
     return {
-      name: all.store.name,
+      name: (all.store.name || STORE_DEFAULTS.name).trim() || STORE_DEFAULTS.name,
+      city: (all.store.city || STORE_DEFAULTS.city).trim() || STORE_DEFAULTS.city,
       logo: all.store.logo || "/favicon.png",
       whatsapp: all.store.whatsapp || process.env.NEXT_PUBLIC_WHATSAPP || STORE_DEFAULTS.whatsapp,
       email: all.store.email,
@@ -81,6 +89,7 @@ export async function getPublicSettings() {
   } catch {
     return {
       name: STORE_DEFAULTS.name,
+      city: STORE_DEFAULTS.city,
       logo: STORE_DEFAULTS.logo,
       whatsapp: process.env.NEXT_PUBLIC_WHATSAPP || STORE_DEFAULTS.whatsapp,
       email: STORE_DEFAULTS.email,

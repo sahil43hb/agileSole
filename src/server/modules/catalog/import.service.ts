@@ -80,6 +80,7 @@ export async function importProductsCsv(text: string) {
         sizeCm: r.sizecm || r.size_cm || "",
         price: Number(r.price || 0),
         compareAt: r.compareat ? Number(r.compareat) : undefined,
+        cost: r.cost ? Number(r.cost) : undefined,
         onHand: Number(r.onhand || r.stock || 0),
         reserved: 0,
         isActive: true,

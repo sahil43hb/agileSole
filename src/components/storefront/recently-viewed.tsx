@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { ProductCard } from "./product-card";
 import { productGridClass } from "./product-grid";
 import type { PublicProduct } from "@/server/modules/catalog/product.service";
@@ -18,6 +19,7 @@ export function trackView(slug: string) {
 }
 
 export function RecentlyViewed({ locale, exclude }: { locale: string; exclude?: string }) {
+  const t = useTranslations("pdp");
   const [products, setProducts] = useState<PublicProduct[]>([]);
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export function RecentlyViewed({ locale, exclude }: { locale: string; exclude?: 
   if (!products.length) return null;
   return (
     <section className="mt-16">
-      <h2 className="text-xl font-semibold">Recently viewed</h2>
+      <h2 className="text-xl font-semibold">{t("recently")}</h2>
       <div className={`mt-6 ${productGridClass}`}>
         {products.map((p) => (
           <ProductCard key={p.id} product={p} />

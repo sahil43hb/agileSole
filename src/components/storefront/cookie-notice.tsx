@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { getConsent, setConsent } from "@/lib/analytics";
 
 export function CookieNotice() {
-  const locale = useLocale();
-  const ur = locale === "ur";
+  const t = useTranslations("cookies");
   const [show, setShow] = useState(false);
   useEffect(() => {
     setShow(!getConsent());
@@ -16,13 +15,11 @@ export function CookieNotice() {
   return (
     <div className="fixed inset-x-0 bottom-16 z-40 mx-auto max-w-xl border border-paper-line bg-paper p-4 text-sm shadow-sm md:bottom-6">
       <p>
-        {ur
-          ? "زبان، بیگ اور پسندیدہ کے لیے ضروری کوکیز۔ تجزیہ صرف آپ کی اجازت سے۔ "
-          : "We use a few cookies so language, wishlist, and cart keep working. Analytics load only if you accept. See "}
+        {t("body")}
         <Link href="/privacy" className="underline">
-          {ur ? "پرائیویسی" : "privacy"}
+          {t("privacy")}
         </Link>
-        {ur ? " دیکھیں۔" : "."}
+        {t("bodyEnd")}
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button
@@ -34,7 +31,7 @@ export function CookieNotice() {
             setShow(false);
           }}
         >
-          {ur ? "سب قبول" : "Accept all"}
+          {t("accept")}
         </button>
         <button
           type="button"
@@ -45,7 +42,7 @@ export function CookieNotice() {
             setShow(false);
           }}
         >
-          {ur ? "صرف ضروری" : "Necessary only"}
+          {t("necessary")}
         </button>
       </div>
     </div>

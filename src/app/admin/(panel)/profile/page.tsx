@@ -69,7 +69,7 @@ export default function AdminProfilePage() {
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1>Profile</h1>
-        <p className="mt-1 text-sm text-ink-muted">Your login details for the Agile Sole workspace.</p>
+        <p className="mt-1 text-sm text-ink-muted">Your login details for this workspace.</p>
       </div>
 
       <div className="flex items-center gap-4 rounded-2xl border border-[var(--admin-line)] bg-white p-5 shadow-sm">

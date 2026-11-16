@@ -1,14 +1,19 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { AccountShell } from "@/components/storefront/account-shell";
 import { useAuth } from "@/components/storefront/auth-provider";
 import { AppSelect } from "@/components/ui/app-select";
+import { Switch } from "@/components/ui/switch";
 
 const field =
   "mt-1.5 w-full rounded-2xl border-0 bg-[#f3f5f2] px-4 py-3 text-sm outline-none ring-1 ring-transparent transition focus:bg-white focus:ring-brand/40";
 
 export default function ProfilePage() {
+  const t = useTranslations("account");
+  const c = useTranslations("common");
+  const n = useTranslations("nav");
   const { refresh, signOut } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -40,62 +45,57 @@ export default function ProfilePage() {
       body: JSON.stringify({ name, email, locale, preferredGender, whatsappOptIn }),
     });
     const json = await res.json();
-    setMessage(json.ok ? "Saved" : json.error?.message);
+    setMessage(json.ok ? t("saved") : json.error?.message);
     if (json.ok) await refresh();
   }
 
   return (
     <AccountShell>
-      <h1 className="text-3xl font-semibold tracking-tight">Profile</h1>
-      <p className="mt-1 text-sm text-ink-muted">How we greet you and confirm COD orders.</p>
+      <h1 className="text-3xl font-semibold tracking-tight">{t("profileTitle")}</h1>
+      <p className="mt-1 text-sm text-ink-muted">{t("profileHint")}</p>
       <form onSubmit={save} className="mt-6 max-w-lg rounded-[1.35rem] bg-white p-5 ring-1 ring-black/[0.04] md:p-6">
         <label className="block text-xs font-medium text-ink-muted">
-          Name
+          {t("name")}
           <input value={name} onChange={(e) => setName(e.target.value)} className={field} />
         </label>
         <label className="mt-4 block text-xs font-medium text-ink-muted">
-          Email
+          {t("email")}
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
         </label>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="block text-xs font-medium text-ink-muted">
-            Language
+            {t("language")}
             <AppSelect
               tone="store"
               value={locale}
               onChange={setLocale}
               options={[
-                { value: "en", label: "English" },
-                { value: "ur", label: "Urdu" },
+                { value: "en", label: c("english") },
+                { value: "ur", label: c("urdu") },
               ]}
             />
           </label>
           <label className="block text-xs font-medium text-ink-muted">
-            Usual size group
+            {t("sizeGroup")}
             <AppSelect
               tone="store"
               value={preferredGender}
               onChange={setPreferredGender}
               options={[
-                { value: "", label: "Not set" },
-                { value: "men", label: "Men" },
-                { value: "women", label: "Women" },
-                { value: "kids", label: "Kids" },
+                { value: "", label: t("notSet") },
+                { value: "men", label: n("men") },
+                { value: "women", label: n("women") },
+                { value: "kids", label: n("kids") },
               ]}
             />
           </label>
         </div>
-        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl bg-[#f6f7f5] px-4 py-3">
-          <input
-            type="checkbox"
-            checked={whatsappOptIn}
-            onChange={(e) => setWhatsappOptIn(e.target.checked)}
-            className="mt-0.5 h-4 w-4 accent-[#1f8a4c]"
-          />
-          <span className="text-sm">WhatsApp updates</span>
-        </label>
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-[#f6f7f5] px-4 py-3">
+          <span className="text-sm">{t("whatsapp")}</span>
+          <Switch on={whatsappOptIn} onChange={() => setWhatsappOptIn((v) => !v)} label={t("whatsapp")} />
+        </div>
         <button type="submit" className="btn-primary mt-5 h-11 rounded-full px-6">
-          Save
+          {c("save")}
         </button>
       </form>
       {message ? <p className="mt-3 text-sm text-ink-muted">{message}</p> : null}
@@ -105,10 +105,10 @@ export default function ProfilePage() {
           className="text-ink-muted underline-offset-2 hover:text-ink hover:underline"
           onClick={async () => {
             await fetch("/api/v1/me/data-request", { method: "POST", credentials: "same-origin" });
-            setMessage("Data request sent. Staff will follow up.");
+            setMessage(t("dataSent"));
           }}
         >
-          Request download / delete of my data
+          {t("dataRequest")}
         </button>
         <button
           type="button"
@@ -118,7 +118,7 @@ export default function ProfilePage() {
             await signOut();
           }}
         >
-          Sign out all devices
+          {t("signOutAll")}
         </button>
       </div>
     </AccountShell>

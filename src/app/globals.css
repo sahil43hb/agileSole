@@ -41,14 +41,25 @@ button {
 }
 
 input:focus-visible,
-button:focus-visible,
+button:focus-visible:not(.as-switch),
 a:focus-visible {
   @apply ring-2 ring-brand ring-offset-2 ring-offset-paper;
 }
 
+button.as-switch {
+  box-shadow: none !important;
+  transform: none !important;
+  background: transparent;
+}
+
+button.as-switch:focus-visible {
+  outline: 2px solid #1fa64a;
+  outline-offset: 3px;
+}
+
 @layer components {
   .btn-primary,
-  button.bg-brand,
+  button.bg-brand:not(.as-switch),
   a.bg-brand {
     @apply inline-flex items-center justify-center gap-2 rounded-2xl text-center text-sm font-semibold tracking-tight text-white transition duration-150;
     background-color: #1fa64a;
@@ -56,20 +67,20 @@ a:focus-visible {
   }
 
   .btn-primary:hover:not(:disabled),
-  button.bg-brand:hover:not(:disabled),
+  button.bg-brand:not(.as-switch):hover:not(:disabled),
   a.bg-brand:hover {
     background-color: #15803d;
     box-shadow: 0 12px 28px rgba(21, 128, 61, 0.3);
   }
 
   .btn-primary:active:not(:disabled),
-  button.bg-brand:active:not(:disabled),
+  button.bg-brand:not(.as-switch):active:not(:disabled),
   a.bg-brand:active {
     transform: translateY(1px);
   }
 
   .btn-primary:disabled,
-  button.bg-brand:disabled {
+  button.bg-brand:not(.as-switch):disabled {
     @apply cursor-not-allowed opacity-60;
     box-shadow: none;
   }

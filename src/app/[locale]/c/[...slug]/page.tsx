@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CatalogListing } from "@/components/storefront/catalog-listing";
 import { listCatalog } from "@/server/modules/catalog/product.service";
 import { getCategoryBySlug, listCategories } from "@/server/modules/catalog/taxonomy.service";
@@ -17,6 +17,8 @@ export default async function CategoryPage({
   const { locale, slug } = await params;
   const sp = await searchParams;
   setRequestLocale(locale);
+  const n = await getTranslations("nav");
+  const shop = await getTranslations("shop");
 
   const last = slug[slug.length - 1];
   const category = await getCategoryBySlug(last, locale);
@@ -36,7 +38,7 @@ export default async function CategoryPage({
     : children;
   const parentPath = parent ? `/c/${slug.slice(0, -1).join("/")}` : `/c/${slug.join("/")}`;
   const crumbs = [
-    { href: "/", label: "Home" },
+    { href: "/", label: n("home") },
     ...slug.map((part, i) => {
       const match = all.find((c) => c.slug === part);
       return {
@@ -69,7 +71,7 @@ export default async function CategoryPage({
       subcategories={
         styleSiblings.length
           ? [
-              { href: parentPath, label: "All" },
+              { href: parentPath, label: shop("all") },
               ...styleSiblings.map((c) => ({
                 href: `${parentPath}/${c.slug}`,
                 label: c.label,

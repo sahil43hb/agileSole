@@ -49,6 +49,7 @@ function sizes(
     sizeCm: String((Number(sizeEu) * 0.666).toFixed(1)),
     price,
     compareAt: Math.round(price * 1.15),
+    cost: Math.round(price * 0.62),
     onHand: 8 - (i % 4),
     reserved: 0,
     isActive: true,

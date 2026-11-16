@@ -3,6 +3,8 @@ import { homePayload } from "@/server/modules/catalog/home.service";
 import { getHomeSections, listFaqs } from "@/server/modules/cms/cms.service";
 import { FAQS } from "@/content/faqs";
 import { HomeView } from "@/components/storefront/home-view";
+import { getPublicSettings } from "@/server/modules/admin/settings.service";
+import { geoLabel } from "@/content/geo-pk";
 
 export const revalidate = 60;
 
@@ -14,6 +16,9 @@ export default async function HomePage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations();
+  const settings = await getPublicSettings();
+  const storeName = settings.name;
+  const cityLabel = geoLabel(settings.city, locale);
   let data: Awaited<ReturnType<typeof homePayload>> | null = null;
   let enabled = new Set<string>();
   let faqs: Awaited<ReturnType<typeof listFaqs>> = [];
@@ -60,7 +65,7 @@ export default async function HomePage({
       reviews={data?.reviews || []}
       faqs={faqItems}
       t={{
-        kicker: t("hero.kicker"),
+        kicker: t("hero.kicker", { name: storeName, city: cityLabel }),
         title: t("hero.title"),
         body: t("hero.body"),
         cta: t("hero.cta"),
@@ -68,7 +73,7 @@ export default async function HomePage({
         shopBy: t("shopBy"),
         featured: t("featured"),
         storyTitle: t("story.title"),
-        storyBody: t("story.body"),
+        storyBody: t("story.body", { name: storeName, city: cityLabel }),
         trust: {
           cod: t("trust.cod"),
           ship: t("trust.ship"),

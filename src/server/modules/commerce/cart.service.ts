@@ -13,6 +13,7 @@ export type CartLine = {
   color?: string;
   sizeEu?: string;
   price: number;
+  cost?: number;
   image?: string;
   available: number;
 };
@@ -37,6 +38,7 @@ export async function hydrateSku(sku: string, locale = "en") {
     color: variant.color ? String(variant.color) : undefined,
     sizeEu: variant.sizeEu ? String(variant.sizeEu) : undefined,
     price: Number(variant.price || 0),
+    cost: Number(variant.cost || 0),
     image: variant.image ? String(variant.image) : images[0],
     available: stock,
     productId: String((product._id as { toString(): string }).toString()),
@@ -60,6 +62,7 @@ export async function getCart(guestId: string, locale = "en") {
       color: hydrated.color,
       sizeEu: hydrated.sizeEu,
       price: hydrated.price,
+      cost: hydrated.cost || 0,
       image: hydrated.image,
       available: hydrated.available,
     });

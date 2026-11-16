@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
 import { Search, X } from "lucide-react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 type Suggest = {
   products: { slug: string; title: string; price: number }[];
@@ -17,6 +17,7 @@ const RECENTS = "as_recent_searches";
 export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
   const locale = useLocale();
+  const t = useTranslations("searchPage");
   const [q, setQ] = useState("");
   const [data, setData] = useState<Suggest>({ products: [], categories: [], brands: [] });
   const [recents, setRecents] = useState<string[]>([]);
@@ -93,17 +94,17 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search name, color, or SKU"
+            placeholder={t("placeholder")}
             className="flex-1 bg-transparent py-2 text-lg"
           />
-          <button type="button" onClick={onClose} aria-label="Close search">
+          <button type="button" onClick={onClose} aria-label={t("close")}>
             <X className="h-5 w-5" />
           </button>
         </form>
         <div className="max-h-[70vh] overflow-y-auto py-4 text-sm">
           {!q && recents.length ? (
             <div>
-              <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">Recent</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">{t("recent")}</p>
               <ul className="mt-2 space-y-1">
                 {recents.map((r) => (
                   <li key={r}>
@@ -125,7 +126,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
           ) : null}
           {data.products.length ? (
             <div className="mt-4">
-              <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">Pairs</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">{t("pairs")}</p>
               <ul className="mt-2 space-y-2">
                 {data.products.map((p) => (
                   <li key={p.slug}>
@@ -147,7 +148,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
           ) : null}
           {data.categories.length ? (
             <div className="mt-4">
-              <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">Categories</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">{t("categories")}</p>
               <ul className="mt-2 space-y-1">
                 {data.categories.map((c) => (
                   <li key={c.slug}>
@@ -161,7 +162,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
           ) : null}
           {data.brands.length ? (
             <div className="mt-4">
-              <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">Brands</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">{t("brands")}</p>
               <ul className="mt-2 space-y-1">
                 {data.brands.map((b) => (
                   <li key={b.slug}>
@@ -173,9 +174,9 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
               </ul>
             </div>
           ) : null}
-          {status === "load" ? <p className="mt-4 text-ink-muted">Searching…</p> : null}
+          {status === "load" ? <p className="mt-4 text-ink-muted">{t("searching")}</p> : null}
           {status === "done" && q.trim().length >= 2 && !data.products.length && !data.categories.length && !data.brands.length ? (
-            <p className="mt-4 text-ink-muted">No matches. Try a colour, EU size, or browse Men.</p>
+            <p className="mt-4 text-ink-muted">{t("noneLong")}</p>
           ) : null}
         </div>
       </div>

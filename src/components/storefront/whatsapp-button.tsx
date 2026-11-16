@@ -2,13 +2,15 @@
 
 import { MessageCircle } from "lucide-react";
 import { usePathname } from "@/i18n/navigation";
+import { useStoreIdentity } from "@/components/store-identity";
 
 export function WhatsAppButton({ phone }: { phone?: string }) {
   const pathname = usePathname();
+  const { name } = useStoreIdentity();
   if (!phone || pathname.startsWith("/cart") || pathname.startsWith("/checkout")) return null;
   const digits = phone.replace(/\D/g, "");
   if (!digits) return null;
-  const href = `https://wa.me/${digits}?text=${encodeURIComponent("Hi Agile Sole, I have a question about a pair.")}`;
+  const href = `https://wa.me/${digits}?text=${encodeURIComponent(`Hi ${name}, I have a question about a pair.`)}`;
   return (
     <a
       href={href}

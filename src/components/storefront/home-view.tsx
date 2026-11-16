@@ -1,4 +1,5 @@
 import { Link } from "@/i18n/navigation";
+import { brandCity } from "@/shared/constants";
 import { ProductCard } from "@/components/storefront/product-card";
 import { productGridClass } from "@/components/storefront/product-grid";
 import { NewsletterForm } from "@/components/storefront/newsletter-form";
@@ -285,7 +286,7 @@ export function HomeView({
               <img src="/catalog/story-family.jpg" alt="" className="absolute inset-0 h-full w-full object-cover object-[center_20%]" />
             </div>
             <div className="flex flex-col justify-center px-7 py-12 md:px-12">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-light">Gujranwala</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-light">{brandCity(locale)}</p>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight">{t.storyTitle}</h2>
               <p className="mt-4 max-w-md text-sm leading-relaxed text-paper/75">{t.storyBody}</p>
               <Link href="/about" className="mt-8 inline-flex w-fit items-center gap-2 text-sm font-medium text-brand-mint hover:underline">

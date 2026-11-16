@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { statusHint, statusLabel, TRACK_STEPS } from "@/shared/order-copy";
 
 export function OrderTimeline({
@@ -11,6 +12,7 @@ export function OrderTimeline({
   locale?: string;
   shipment?: { courierName?: string; trackingNumber?: string; trackingUrl?: string };
 }) {
+  const c = useTranslations("common");
   const idx = TRACK_STEPS.indexOf(status as (typeof TRACK_STEPS)[number]);
   const side = ["unreachable", "on_hold", "cancelled", "delivery_failed", "returned", "pickup_ready"].includes(status);
 
@@ -49,10 +51,10 @@ export function OrderTimeline({
       ) : null}
       {shipment?.trackingNumber ? (
         <p className="mt-4 text-sm text-ink-muted">
-          {shipment.courierName || "Courier"} · {shipment.trackingNumber}
+          {shipment.courierName || c("courier")} · {shipment.trackingNumber}
           {shipment.trackingUrl ? (
             <a href={shipment.trackingUrl} className="ms-2 font-medium text-brand-dark hover:underline" target="_blank" rel="noreferrer">
-              Track with courier
+              {c("trackCourier")}
             </a>
           ) : null}
         </p>

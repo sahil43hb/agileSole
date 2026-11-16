@@ -11,11 +11,11 @@ export type MenuCategory = {
   children: { slug: string; label: string }[];
 };
 
-const FEATURE: Record<string, { image: string; caption: string }> = {
-  men: { image: "/catalog/track-navy.jpg", caption: "City miles" },
-  women: { image: "/catalog/dual-strap-sandals.jpg", caption: "House comfort" },
-  kids: { image: "/catalog/family-courtyard.jpg", caption: "Kids beat" },
-  comfort: { image: "/catalog/pink-sole.jpg", caption: "Everyday ease" },
+const FEATURE: Record<string, { image: string; captionKey: "captionMen" | "captionWomen" | "captionKids" | "captionComfort" }> = {
+  men: { image: "/catalog/track-navy.jpg", captionKey: "captionMen" },
+  women: { image: "/catalog/dual-strap-sandals.jpg", captionKey: "captionWomen" },
+  kids: { image: "/catalog/family-courtyard.jpg", captionKey: "captionKids" },
+  comfort: { image: "/catalog/pink-sole.jpg", captionKey: "captionComfort" },
 };
 
 const COLLECTION_ART: Record<string, string> = {
@@ -82,7 +82,7 @@ export function MegaMenu({
           {t("home")}
         </NavItem>
         {categories.map((cat) => {
-          const feature = FEATURE[cat.slug] || FEATURE.men;
+          const feature = FEATURE[cat.slug] || FEATURE.men!;
           const active = pathname === `/c/${cat.slug}` || pathname.startsWith(`/c/${cat.slug}/`);
           return (
             <div key={cat.slug} className="group/nav flex items-stretch">
@@ -95,11 +95,11 @@ export function MegaMenu({
                     <div className="flex flex-col justify-between pe-5">
                       <div>
                         <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-faint">
-                          Shop {cat.label}
+                          {t("shopCat", { label: cat.label })}
                         </p>
                         <ul className="mt-3">
                           <li>
-                            <ShopLink href={`/c/${cat.slug}`}>{`All ${cat.label}`}</ShopLink>
+                            <ShopLink href={`/c/${cat.slug}`}>{t("allCat", { label: cat.label })}</ShopLink>
                           </li>
                           {cat.children.map((child) => (
                             <li key={child.slug}>
@@ -110,19 +110,19 @@ export function MegaMenu({
                       </div>
                       <ul className="mt-8 border-t border-paper-line/70 pt-4 text-sm text-ink-muted">
                         <li>
-                          <ShopLink href="/collections/new-arrivals">New arrivals</ShopLink>
+                          <ShopLink href="/collections/new-arrivals">{t("newArrivals")}</ShopLink>
                         </li>
                         <li>
-                          <ShopLink href="/shop?onSale=1">Sale</ShopLink>
+                          <ShopLink href="/shop?onSale=1">{t("sale")}</ShopLink>
                         </li>
                         <li>
-                          <ShopLink href="/size-guide">Size guide</ShopLink>
+                          <ShopLink href="/size-guide">{t("sizeGuide")}</ShopLink>
                         </li>
                       </ul>
                     </div>
 
                     <div className="border-x border-paper-line/60 px-5">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-faint">Collections</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-faint">{t("collections")}</p>
                       <div className="mt-4 grid grid-cols-2 gap-3">
                         {collections.map((col) => (
                           <Link
@@ -154,17 +154,17 @@ export function MegaMenu({
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/15 to-transparent" />
                       <span className="absolute inset-x-0 bottom-0 p-5 text-white">
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/65">Lookbook</span>
-                        <span className="mt-1.5 block text-lg font-medium leading-snug">{feature.caption}</span>
-                        <span className="mt-3 inline-flex text-[13px] text-[#c8ecd4]">Explore →</span>
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/65">{t("lookbook")}</span>
+                        <span className="mt-1.5 block text-lg font-medium leading-snug">{t(feature.captionKey)}</span>
+                        <span className="mt-3 inline-flex text-[13px] text-[#c8ecd4]">{t("explore")} →</span>
                       </span>
                     </Link>
                   </div>
                   <div className="border-t border-paper-line/60 bg-[#f6f8f6]">
                     <div className="flex items-center justify-between px-5 py-3 md:px-6">
-                      <p className="text-sm text-ink-muted">Every Step a Perfect Beat</p>
+                      <p className="text-sm text-ink-muted">{t("tagline")}</p>
                       <Link href="/lookbook" className="text-sm font-medium text-brand-dark hover:underline">
-                        View lookbook
+                        {t("viewLookbook")}
                       </Link>
                     </div>
                   </div>
@@ -174,13 +174,13 @@ export function MegaMenu({
           );
         })}
         <NavItem href="/collections/new-arrivals" active={pathname.startsWith("/collections/new-arrivals")}>
-          New in
+          {t("newIn")}
         </NavItem>
         <NavItem href="/shop?onSale=1" accent>
-          Sale
+          {t("sale")}
         </NavItem>
         <NavItem href="/brands" active={pathname.startsWith("/brands")}>
-          Brands
+          {t("brands")}
         </NavItem>
       </nav>
     </div>

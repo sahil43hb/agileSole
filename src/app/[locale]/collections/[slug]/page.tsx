@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CatalogListing } from "@/components/storefront/catalog-listing";
 import { listCatalog } from "@/server/modules/catalog/product.service";
 import { getCollectionBySlug } from "@/server/modules/catalog/taxonomy.service";
@@ -17,6 +17,7 @@ export default async function CollectionPage({
   const { locale, slug } = await params;
   const sp = await searchParams;
   setRequestLocale(locale);
+  const n = await getTranslations("nav");
   const collection = await getCollectionBySlug(slug, locale);
   if (!collection) notFound();
   const catalog = await listCatalog({ locale, collection: slug, ...filtersFromSearch(sp) });
@@ -38,7 +39,7 @@ export default async function CollectionPage({
       facets={catalog.facets}
       path={`/collections/${slug}`}
       query={filterQueryRecord(sp)}
-      crumbs={[{ href: "/", label: "Home" }, { href: "/shop", label: "Shop" }, { label: collection.title }]}
+      crumbs={[{ href: "/", label: n("home") }, { href: "/shop", label: n("shop") }, { label: collection.title }]}
       heroImage={HERO[slug] || "/catalog/campaign-grid.jpg"}
     />
   );

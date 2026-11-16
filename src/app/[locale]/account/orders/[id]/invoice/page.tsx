@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import { formatPkr } from "@/shared/money";
-import { BRAND } from "@/shared/constants";
+import { geoLabel } from "@/content/geo-pk";
+import { useStoreIdentity } from "@/components/store-identity";
 
 type Order = {
   number: string;
@@ -16,6 +18,8 @@ type Order = {
 
 export default function InvoicePage() {
   const params = useParams<{ id: string }>();
+  const locale = useLocale();
+  const store = useStoreIdentity();
   const [order, setOrder] = useState<Order | null>(null);
 
   useEffect(() => {
@@ -30,8 +34,10 @@ export default function InvoicePage() {
     <div className="mx-auto max-w-2xl bg-paper p-8 print:p-0">
       <div className="flex justify-between">
         <div>
-          <p className="text-xl font-semibold">{BRAND.name}</p>
-          <p className="text-sm text-ink-muted">{BRAND.city}, Pakistan</p>
+          <p className="text-xl font-semibold">{store.name}</p>
+          <p className="text-sm text-ink-muted">
+            {geoLabel(store.city, locale)}, {geoLabel("Pakistan", locale)}
+          </p>
         </div>
         <div className="text-end">
           <p className="text-sm">Invoice</p>
@@ -41,7 +47,8 @@ export default function InvoicePage() {
       <p className="mt-6 text-sm">
         Bill to: {order.shippingAddress.fullName}
         <br />
-        {order.shippingAddress.street}, {order.shippingAddress.city}, {order.shippingAddress.province}
+        {order.shippingAddress.street}, {geoLabel(order.shippingAddress.city, locale)},{" "}
+        {geoLabel(order.shippingAddress.province, locale)}
         <br />
         {order.shippingAddress.phone}
       </p>

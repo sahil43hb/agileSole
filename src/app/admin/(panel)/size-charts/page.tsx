@@ -4,8 +4,10 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Plus, RotateCcw, Trash2, X } from "lucide-react";
 import {
   AdminModal,
+  AdminHeaderAction,
   AdminPageHeader,
   AdminSearch,
+  AdminTable,
   ConfirmDialog,
   EmptyNote,
   SingleSelect,
@@ -30,7 +32,7 @@ const cell =
   "h-9 w-full rounded-lg border border-[#e7ebe8] bg-white px-2 text-sm outline-none focus:border-brand";
 
 const COLS = [
-  { key: "eu" as const, label: "EU", hint: "Europe", desc: "European size — the size Agile Sole sells." },
+  { key: "eu" as const, label: "EU", hint: "Europe", desc: "European size — the size this shop sells." },
   { key: "pk" as const, label: "PK", hint: "Pakistan", desc: "Pakistan size — same numbers as UK in most local shops." },
   { key: "uk" as const, label: "UK", hint: "United Kingdom", desc: "United Kingdom equivalent." },
   { key: "us" as const, label: "US", hint: "United States", desc: "United States equivalent." },
@@ -152,16 +154,7 @@ export default function AdminSizeChartsPage() {
       <AdminPageHeader
         title="Size charts"
         description="How EU sizes map to Pakistan, UK, US, and foot length in centimetres."
-        actions={
-          <button
-            type="button"
-            onClick={openNew}
-            className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-medium text-white"
-          >
-            <Plus className="h-4 w-4" />
-            Add chart
-          </button>
-        }
+        actions={<AdminHeaderAction icon={Plus} label="Add chart" onClick={openNew} />}
       />
 
       <div className="grid gap-3 rounded-2xl border border-[var(--admin-line)] bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-5">
@@ -197,6 +190,7 @@ export default function AdminSizeChartsPage() {
       {!visible.length ? (
         <EmptyNote>No size charts match these filters.</EmptyNote>
       ) : (
+        <AdminTable>
         <table>
           <thead>
             <tr>
@@ -231,6 +225,7 @@ export default function AdminSizeChartsPage() {
             ))}
           </tbody>
         </table>
+        </AdminTable>
       )}
 
       {editing ? (

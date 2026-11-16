@@ -5,7 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { AccountShell } from "@/components/storefront/account-shell";
 import { formatPkr } from "@/shared/money";
 import { statusLabel } from "@/shared/order-copy";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 type Order = {
   _id: string;
@@ -17,6 +17,7 @@ type Order = {
 
 export default function AccountOrdersPage() {
   const locale = useLocale();
+  const t = useTranslations("account");
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
@@ -27,8 +28,8 @@ export default function AccountOrdersPage() {
 
   return (
     <AccountShell>
-      <h1 className="text-3xl font-semibold tracking-tight">Orders</h1>
-      <p className="mt-1 text-sm text-ink-muted">Every COD order on this mobile.</p>
+      <h1 className="text-3xl font-semibold tracking-tight">{t("ordersTitle")}</h1>
+      <p className="mt-1 text-sm text-ink-muted">{t("overviewHint")}</p>
       <ul className="mt-6 space-y-3">
         {orders.map((o) => (
           <li key={o._id}>
@@ -47,7 +48,7 @@ export default function AccountOrdersPage() {
       </ul>
       {!orders.length ? (
         <p className="mt-6 rounded-[1.25rem] bg-white p-5 text-sm text-ink-muted ring-1 ring-black/[0.04]">
-          No orders on this account yet.
+          {t("noSavedOrders")}
         </p>
       ) : null}
     </AccountShell>

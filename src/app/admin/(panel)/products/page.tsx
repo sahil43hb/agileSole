@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, RotateCcw } from "lucide-react";
+import { Plus, RotateCcw, Upload } from "lucide-react";
 import { formatPkr } from "@/shared/money";
 import {
+  AdminHeaderAction,
   AdminPageHeader,
   AdminSearch,
+  AdminTable,
   ConfirmDialog,
   EmptyNote,
   MultiSelect,
@@ -91,19 +93,8 @@ export default function ProductsPage() {
         description={`${rows.length} styles in the catalog`}
         actions={
           <>
-            <Link
-              href="/admin/products/import"
-              className="inline-flex h-11 items-center rounded-xl border border-[var(--admin-line)] bg-white px-4 text-sm"
-            >
-              Import CSV
-            </Link>
-            <Link
-              href="/admin/products/new"
-              className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-medium text-white"
-            >
-              <Plus className="h-4 w-4" />
-              Add product
-            </Link>
+            <AdminHeaderAction icon={Upload} label="Import CSV" href="/admin/products/import" variant="secondary" />
+            <AdminHeaderAction icon={Plus} label="Add product" href="/admin/products/new" />
           </>
         }
       />
@@ -129,6 +120,7 @@ export default function ProductsPage() {
       {!visible.length ? (
         <EmptyNote>No products match these filters.</EmptyNote>
       ) : (
+        <AdminTable>
         <table>
           <thead>
             <tr>
@@ -190,6 +182,7 @@ export default function ProductsPage() {
             ))}
           </tbody>
         </table>
+        </AdminTable>
       )}
 
       <ConfirmDialog

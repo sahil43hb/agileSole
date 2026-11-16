@@ -2,8 +2,9 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, X } from "lucide-react";
-import { AdminPageHeader } from "@/components/admin/ui";
+import { Check, ImagePlus, X } from "lucide-react";
+import { AdminHeaderAction, AdminPageHeader } from "@/components/admin/ui";
+import { Switch } from "@/components/ui/switch";
 import { LOGO_SRC } from "@/components/brand/logo";
 import { notifyLogoChanged } from "@/lib/brand-icon";
 
@@ -36,17 +37,7 @@ function Toggle({
   locked?: boolean;
   onClick: () => void;
 }) {
-  return (
-    <button
-      type="button"
-      disabled={locked}
-      onClick={onClick}
-      className={`h-5 w-9 shrink-0 rounded-full p-0.5 disabled:opacity-70 ${on ? "bg-brand" : "bg-[#d5ddd7]"}`}
-      aria-pressed={on}
-    >
-      <span className={`block h-4 w-4 rounded-full bg-white transition ${on ? "translate-x-4" : ""}`} />
-    </button>
-  );
+  return <Switch on={on} disabled={locked} onChange={onClick} />;
 }
 
 export default function SettingsPage() {
@@ -139,13 +130,13 @@ export default function SettingsPage() {
         title="Store settings"
         description="Brand, contact, COD limits, and what goes live next."
         actions={
-          <button
+          <AdminHeaderAction
+            icon={Check}
             type="submit"
+            label="Save settings"
+            loadingLabel="Saving…"
             disabled={busy}
-            className="inline-flex h-11 items-center rounded-xl bg-brand px-5 text-sm font-medium text-white disabled:opacity-60"
-          >
-            {busy ? "Saving…" : "Save settings"}
-          </button>
+          />
         }
       />
       {saved ? <p className="rounded-xl bg-brand-mist px-3 py-2 text-sm text-brand-dark">{saved}</p> : null}

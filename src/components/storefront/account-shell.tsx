@@ -1,22 +1,24 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { Heart, LayoutDashboard, LogOut, MapPin, Package, Star, Truck, UserRound } from "lucide-react";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { useAuth } from "./auth-provider";
 import { CustomerAvatar, customerFirstName } from "./account-menu";
 
 const NAV = [
-  { href: "/account", label: "Overview", exact: true, icon: LayoutDashboard },
-  { href: "/account/orders", label: "Orders", icon: Package },
-  { href: "/account/addresses", label: "Addresses", icon: MapPin },
-  { href: "/account/profile", label: "Profile", icon: UserRound },
-  { href: "/account/reviews", label: "Reviews", icon: Star },
-  { href: "/wishlist", label: "Wishlist", icon: Heart },
-  { href: "/track-order", label: "Track", icon: Truck },
-];
+  { href: "/account", labelKey: "overview", exact: true, icon: LayoutDashboard },
+  { href: "/account/orders", labelKey: "orders", icon: Package },
+  { href: "/account/addresses", labelKey: "addresses", icon: MapPin },
+  { href: "/account/profile", labelKey: "profile", icon: UserRound },
+  { href: "/account/reviews", labelKey: "reviews", icon: Star },
+  { href: "/wishlist", labelKey: "wishlist", icon: Heart },
+  { href: "/track-order", labelKey: "track", icon: Truck },
+] as const;
 
 export function AccountShell({ children }: { children: ReactNode }) {
+  const t = useTranslations("account");
   const { customer, loading, signOut } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
@@ -24,7 +26,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <div className="bg-[#f6f7f5]">
-        <p className="mx-auto max-w-site px-4 py-16 text-sm text-ink-muted">Loading account…</p>
+        <p className="mx-auto max-w-site px-4 py-16 text-sm text-ink-muted">{t("loading")}</p>
       </div>
     );
   }
@@ -33,7 +35,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
     router.replace("/account/login");
     return (
       <div className="bg-[#f6f7f5]">
-        <p className="mx-auto max-w-site px-4 py-16 text-sm text-ink-muted">Redirecting to login…</p>
+        <p className="mx-auto max-w-site px-4 py-16 text-sm text-ink-muted">{t("redirect")}</p>
       </div>
     );
   }
@@ -62,7 +64,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
                   }`}
                 >
                   <Icon className="h-4 w-4" />
-                  {item.label}
+                  {t(item.labelKey)}
                 </Link>
               );
             })}
@@ -76,7 +78,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
             }}
           >
             <LogOut className="h-4 w-4" />
-            Sign out
+            {t("signOut")}
           </button>
         </aside>
         <div className="min-w-0">{children}</div>

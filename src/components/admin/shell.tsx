@@ -29,6 +29,7 @@ import {
   ChevronRight,
   UserRound,
 } from "lucide-react";
+import { AdminNotifications } from "@/components/admin/notifications";
 import { Wordmark } from "@/components/brand/logo";
 import { DEFAULT_LOGO, LOGO_CHANGED_EVENT } from "@/lib/brand-icon";
 
@@ -103,10 +104,12 @@ export function AdminShell({
   staff,
   children,
   logoSrc,
+  storeName = "Agile Sole",
 }: {
   staff: { name: string; email: string; role: string };
   children: ReactNode;
   logoSrc?: string;
+  storeName?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -168,6 +171,7 @@ export function AdminShell({
         <Link href="/admin" onClick={() => setMobileOpen(false)} className="flex justify-center">
           <Wordmark
             src={logo}
+            alt={storeName}
             compact={narrow}
             className={narrow ? "h-11 w-auto max-w-[68px]" : "h-14 w-auto max-w-[188px]"}
           />
@@ -212,9 +216,9 @@ export function AdminShell({
   );
 
   return (
-    <div className="admin-app flex h-dvh overflow-hidden bg-[var(--admin-bg)] text-ink">
+    <div className="admin-app flex h-dvh max-h-dvh min-h-0 overflow-hidden bg-[var(--admin-bg)] text-ink">
       <aside
-        className={`relative hidden h-full shrink-0 flex-col border-e border-[var(--admin-line)] bg-white transition-[width] duration-200 md:flex ${
+        className={`relative hidden h-full min-h-0 shrink-0 flex-col border-e border-[var(--admin-line)] bg-white transition-[width] duration-200 md:flex ${
           collapsed ? "w-[84px]" : "w-[268px]"
         }`}
       >
@@ -236,8 +240,8 @@ export function AdminShell({
         </div>
       ) : null}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-[76px] shrink-0 items-center justify-between gap-3 border-b border-[var(--admin-line)] bg-white/90 px-5 backdrop-blur-md">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="z-20 flex h-[76px] shrink-0 items-center justify-between gap-3 border-b border-[var(--admin-line)] bg-white/90 px-5 backdrop-blur-md">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
@@ -249,10 +253,12 @@ export function AdminShell({
             </button>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold tracking-tight">{pageTitle}</p>
-              <p className="hidden text-[11px] text-ink-faint sm:block">Agile Sole operations</p>
+              <p className="hidden text-[11px] text-ink-faint sm:block">{storeName} operations</p>
             </div>
           </div>
 
+          <div className="flex items-center gap-2">
+            <AdminNotifications />
           <div className="relative" ref={menuRef}>
             <button
               type="button"
@@ -299,8 +305,11 @@ export function AdminShell({
               </div>
             ) : null}
           </div>
+          </div>
         </header>
-        <main className="admin-main flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="admin-main min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain bg-[var(--admin-bg)] p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -15,6 +15,7 @@ export { Counter } from "./counter";
 export { nextOrderNumber } from "./counter";
 export { Ticket } from "./ticket";
 export { NotificationLog } from "./notification-log";
+export { AdminNotification } from "./admin-notification";
 export { Discount } from "./discount";
 export { Faq } from "./faq";
 export { AuditLog } from "./audit-log";

@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter, Link } from "@/i18n/navigation";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 type Suggest = {
   products: { slug: string; title: string; price: number }[];
@@ -13,6 +13,8 @@ type Suggest = {
 export function SearchForm() {
   const router = useRouter();
   const locale = useLocale();
+  const t = useTranslations("searchPage");
+  const c = useTranslations("common");
   const [q, setQ] = useState("");
   const [data, setData] = useState<Suggest>({ products: [], categories: [], brands: [] });
   const [status, setStatus] = useState<"idle" | "load" | "done">("idle");
@@ -54,15 +56,15 @@ export function SearchForm() {
       <form onSubmit={onSubmit} className="mt-6 flex gap-2">
         <input
           className="w-full max-w-md border border-paper-line px-3 py-2"
-          placeholder="Name, color, or SKU"
+          placeholder={t("nameSku")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
         <button className="btn-primary h-11 px-5" type="submit">
-          Search
+          {c("search")}
         </button>
       </form>
-      {status === "load" ? <p className="mt-3 text-sm text-ink-muted">Searching…</p> : null}
+      {status === "load" ? <p className="mt-3 text-sm text-ink-muted">{t("searching")}</p> : null}
       {data.products.length ? (
         <ul className="mt-4 max-w-md space-y-2 text-sm">
           {data.products.map((p) => (
@@ -76,7 +78,7 @@ export function SearchForm() {
         </ul>
       ) : null}
       {status === "done" && q.trim().length >= 2 && !data.products.length ? (
-        <p className="mt-4 text-sm text-ink-muted">No matches. Try Men, Women, or a colour name.</p>
+        <p className="mt-4 text-sm text-ink-muted">{t("noneLong")}</p>
       ) : null}
     </div>
   );

@@ -11,6 +11,7 @@ export async function StoreHeader() {
   let menu = { categories: [] as Awaited<ReturnType<typeof menuPayload>>["categories"], collections: [] as Awaited<ReturnType<typeof menuPayload>>["collections"] };
   let announce = announceT("announce");
   let logoSrc = "/favicon.png";
+  let storeName = "Agile Sole";
   try {
     const [nav, cms, publicSettings] = await Promise.all([
       menuPayload(locale),
@@ -20,6 +21,7 @@ export async function StoreHeader() {
     menu = nav;
     announce = locale === "ur" ? cms.ur || cms.en : cms.en;
     logoSrc = publicSettings.logo || logoSrc;
+    storeName = publicSettings.name || storeName;
   } catch {
     // keep empty menu if db is warming
   }
@@ -28,6 +30,7 @@ export async function StoreHeader() {
     <HeaderChrome
       announce={announce}
       logoSrc={logoSrc}
+      storeName={storeName}
       labels={{
         search: t("search"),
         account: t("account"),

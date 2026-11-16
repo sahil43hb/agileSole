@@ -9,7 +9,7 @@ import { formatPkr } from "@/shared/money";
 import { statusLabel } from "@/shared/order-copy";
 import { useAuth } from "@/components/storefront/auth-provider";
 import { useWishlist } from "@/components/storefront/wishlist-provider";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 type Me = {
   customer: { name: string; phone: string; email: string; addresses?: unknown[] };
@@ -21,6 +21,7 @@ export default function AccountHomePage() {
   const { customer } = useAuth();
   const { count } = useWishlist();
   const locale = useLocale();
+  const t = useTranslations("account");
   const [me, setMe] = useState<Me | null>(null);
 
   useEffect(() => {
@@ -30,16 +31,16 @@ export default function AccountHomePage() {
   }, [customer]);
 
   const stats = [
-    { href: "/account/orders", label: "Orders", value: me?.orderCount ?? "—", icon: Package },
-    { href: "/wishlist", label: "Wishlist", value: count, icon: Heart },
-    { href: "/account/addresses", label: "Addresses", value: me?.customer.addresses?.length ?? 0, icon: MapPin },
+    { href: "/account/orders", label: t("orders"), value: me?.orderCount ?? "—", icon: Package },
+    { href: "/wishlist", label: t("wishlist"), value: count, icon: Heart },
+    { href: "/account/addresses", label: t("addresses"), value: me?.customer.addresses?.length ?? 0, icon: MapPin },
   ];
 
   return (
     <AccountShell>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-dark">Account</p>
-      <h1 className="mt-1 text-3xl font-semibold tracking-tight">Hi, {customerFirstName(customer?.name)}</h1>
-      <p className="mt-1 text-sm text-ink-muted">Orders, addresses, and tracking in one place.</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-dark">{t("kicker")}</p>
+      <h1 className="mt-1 text-3xl font-semibold tracking-tight">{t("hi", { name: customerFirstName(customer?.name) })}</h1>
+      <p className="mt-1 text-sm text-ink-muted">{t("overviewHint")}</p>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-3">
         {stats.map((s) => (
@@ -61,20 +62,20 @@ export default function AccountHomePage() {
           className="mt-6 flex items-center justify-between gap-4 rounded-[1.35rem] bg-white p-5 shadow-[0_8px_28px_rgba(17,17,17,0.04)] ring-1 ring-black/[0.04] transition hover:ring-black/10"
         >
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink-muted">Latest order</p>
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink-muted">{t("latestOrder")}</p>
             <p className="mt-1 font-semibold">{me.lastOrder.number}</p>
             <p className="mt-0.5 text-sm text-ink-muted">
               {statusLabel(me.lastOrder.status, locale)} · {formatPkr(me.lastOrder.amounts.total)}
             </p>
           </div>
           <span className="inline-flex items-center gap-1 text-sm font-medium text-brand-dark">
-            View timeline
+            {t("viewTimeline")}
             <ChevronRight className="h-4 w-4" />
           </span>
         </Link>
       ) : (
         <div className="mt-6 rounded-[1.35rem] bg-white p-5 text-sm text-ink-muted ring-1 ring-black/[0.04]">
-          No orders yet. Guest checkout still lets you track with order number + phone.
+          {t("noOrders")}
         </div>
       )}
     </AccountShell>

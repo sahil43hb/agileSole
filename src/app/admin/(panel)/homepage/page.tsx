@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminPageHeader } from "@/components/admin/ui";
+import { Check } from "lucide-react";
+import { AdminHeaderAction, AdminPageHeader } from "@/components/admin/ui";
+import { SwitchTrack } from "@/components/ui/switch";
 
 type Section = { type: string; enabled: boolean };
 
@@ -73,14 +75,13 @@ export default function HomepageCmsPage() {
         title="Homepage"
         description="Announcement bar and which blocks shoppers see first."
         actions={
-          <button
-            type="button"
+          <AdminHeaderAction
+            icon={Check}
+            label="Save homepage"
+            loadingLabel="Saving…"
             disabled={busy}
             onClick={() => void Promise.all([saveAnnounce(), saveSections()])}
-            className="inline-flex h-11 items-center rounded-xl bg-brand px-4 text-sm font-medium text-white disabled:opacity-60"
-          >
-            {busy ? "Saving…" : "Save homepage"}
-          </button>
+          />
         }
       />
       {saved ? <p className="rounded-xl bg-brand-mist px-3 py-2 text-sm text-brand-dark">{saved}</p> : null}
@@ -118,9 +119,7 @@ export default function HomepageCmsPage() {
                 }`}
               >
                 {s.enabled ? "Visible" : "Hidden"}
-                <span className={`h-5 w-9 rounded-full p-0.5 ${s.enabled ? "bg-brand" : "bg-[#d5ddd7]"}`}>
-                  <span className={`block h-4 w-4 rounded-full bg-white transition ${s.enabled ? "translate-x-4" : ""}`} />
-                </span>
+                <SwitchTrack on={s.enabled} />
               </button>
             </li>
           ))}

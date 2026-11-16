@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Banknote, Heart, RefreshCw, Share2, Star, Truck } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { formatPkr } from "@/shared/money";
 import type { PublicProduct } from "@/server/modules/catalog/product.service";
@@ -21,6 +22,13 @@ export function ProductDetail({
   chart: Chart | null;
   reviews?: { average: number; count: number };
 }) {
+  const t = useTranslations("pdp");
+  const c = useTranslations("common");
+  const n = useTranslations("nav");
+  const genderLabel =
+    product.gender === "men" || product.gender === "women" || product.gender === "kids"
+      ? n(product.gender)
+      : product.gender;
   const { has, toggle } = useWishlist();
   const { add } = useCart();
   const [color, setColor] = useState(product.colors[0]?.name || "");
@@ -59,7 +67,7 @@ export function ProductDetail({
     if (!requireSize()) return;
     if (!selected) return;
     const err = await add(selected.sku, 1);
-    setNote(err || "Added to bag");
+    setNote(err || t("added"));
   }
 
   return (
@@ -69,13 +77,13 @@ export function ProductDetail({
 
         <div className="lg:sticky lg:top-24">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-muted">
-            {product.gender} · {product.type}
+            {genderLabel} · {product.type}
           </p>
           <div className="mt-2 flex items-start justify-between gap-3">
             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{product.title}</h1>
             <button
               type="button"
-              aria-label="Wishlist"
+              aria-label={t("wishlist")}
               onClick={() => toggle(product.slug)}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f3f5f2] transition hover:bg-[#e8ece8]"
             >
@@ -90,7 +98,9 @@ export function ProductDetail({
                   <Star key={i} className={`h-3.5 w-3.5 ${i < filled ? "fill-brand" : "text-paper-line"}`} />
                 ))}
               </span>
-              {reviews.average.toFixed(1)} · {reviews.count} review{reviews.count === 1 ? "" : "s"}
+              {reviews.count === 1
+                ? t("reviews", { average: reviews.average.toFixed(1), count: reviews.count })
+                : t("reviewsPlural", { average: reviews.average.toFixed(1), count: reviews.count })}
             </a>
           ) : null}
 
@@ -101,18 +111,18 @@ export function ProductDetail({
               <span className="rounded-full bg-brand-mist px-2 py-0.5 text-xs font-semibold text-brand-dark">-{product.percentOff}%</span>
             ) : null}
           </p>
-          <p className="mt-1 text-xs text-ink-muted">Prices in PKR. Tax shown at checkout when it applies.</p>
+          <p className="mt-1 text-xs text-ink-muted">{t("taxNote")}</p>
           {product.description ? <p className="mt-4 text-sm leading-relaxed text-ink-muted">{product.description}</p> : null}
           {product.fitNote ? (
             <p className="mt-3 rounded-2xl bg-[#f6f7f5] px-4 py-2.5 text-sm">
-              <span className="font-medium">Fit.</span> {product.fitNote}
+              <span className="font-medium">{t("fit")}</span> {product.fitNote}
             </p>
           ) : null}
 
           {product.colors.length ? (
             <div className="mt-6">
               <p className="text-xs font-medium text-ink-muted">
-                Color <span className="text-ink">{color}</span>
+                {t("color")} <span className="text-ink">{color}</span>
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {product.colors.map((c) => (
@@ -140,10 +150,10 @@ export function ProductDetail({
 
           <div id="size-picker" className={`mt-6 rounded-[1.2rem] ${sizePulse ? "ring-2 ring-brand ring-offset-4" : ""}`}>
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-ink-muted">EU size</p>
+              <p className="text-xs font-medium text-ink-muted">{t("euSize")}</p>
               {chart ? (
                 <button type="button" className="text-sm font-medium text-brand-dark hover:underline" onClick={() => setGuide(true)}>
-                  Size guide
+                  {t("sizeGuide")}
                 </button>
               ) : null}
             </div>
@@ -176,12 +186,12 @@ export function ProductDetail({
             {selected
               ? selected.onHand > 0
                 ? low
-                  ? `Only ${selected.onHand} left`
-                  : `${selected.onHand} in stock`
-                : "Out of stock in this size"
+                  ? t("onlyLeft", { count: selected.onHand })
+                  : t("inStock", { count: selected.onHand })
+                : t("outSize")
               : inStock
-                ? "Select a size"
-                : "Currently out of stock"}
+                ? t("selectSize")
+                : t("currentlyOut")}
           </p>
 
           <div className="mt-5 flex gap-2">
@@ -191,11 +201,11 @@ export function ProductDetail({
               className="btn-primary h-12 flex-1 rounded-full px-7"
               onClick={() => void addToBag()}
             >
-              Add to cart
+              {t("add")}
             </button>
             <button
               type="button"
-              aria-label="Share"
+              aria-label={t("share")}
               className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f3f5f2] transition hover:bg-[#e8ece8]"
               onClick={() => {
                 const url = window.location.href;
@@ -211,17 +221,17 @@ export function ProductDetail({
           <ul className="mt-6 space-y-2.5 rounded-[1.35rem] bg-[#f6f7f5] p-4 text-sm text-ink-muted">
             <li className="flex items-center gap-2.5">
               <Banknote className="h-4 w-4 text-brand" />
-              Cash on delivery — pay when you receive
+              {t("codLine")}
             </li>
             <li className="flex items-center gap-2.5">
               <Truck className="h-4 w-4 text-brand" />
-              City delivery typically 2–5 days across Pakistan
+              {t("shipLine")}
             </li>
             <li className="flex items-center gap-2.5">
               <RefreshCw className="h-4 w-4 text-brand" />
-              Easy size exchange.{" "}
+              {t("exchangeLine")}{" "}
               <Link href="/shipping-returns" className="font-medium text-brand-dark hover:underline">
-                Returns
+                {t("returns")}
               </Link>
             </li>
           </ul>
@@ -229,11 +239,11 @@ export function ProductDetail({
           <dl className="mt-6 grid grid-cols-[6.5rem_1fr] gap-x-3 gap-y-2 text-sm">
             {product.material ? (
               <>
-                <dt className="text-ink-muted">Material</dt>
+                <dt className="text-ink-muted">{t("material")}</dt>
                 <dd>{product.material}</dd>
               </>
             ) : null}
-            <dt className="text-ink-muted">Type</dt>
+            <dt className="text-ink-muted">{t("type")}</dt>
             <dd className="capitalize">{product.type}</dd>
           </dl>
         </div>
@@ -243,7 +253,7 @@ export function ProductDetail({
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold">{formatPkr(price)}</p>
           <button type="button" className="btn-primary h-11 rounded-full px-5" onClick={() => void addToBag()}>
-            Add to cart
+            {t("add")}
           </button>
         </div>
       </div>
@@ -255,10 +265,9 @@ export function ProductDetail({
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-semibold tracking-tight">{chart.title}</h2>
-            <p className="mt-2 text-sm text-ink-muted">
-              EU is the size we sell. PK is Pakistan (same as UK in most local shops). US is American. CM is foot length — stand on paper, mark heel and longest toe, then match centimetres.
-            </p>
-            <table className="mt-4 w-full text-start text-sm">
+            <p className="mt-2 text-sm text-ink-muted">{t("sizeGuideBody")}</p>
+            <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[28rem] text-start text-sm">
               <thead>
                 <tr className="border-b border-black/[0.06] text-ink-muted">
                   <th className="py-2 font-medium">EU</th>
@@ -280,8 +289,9 @@ export function ProductDetail({
                 ))}
               </tbody>
             </table>
+            </div>
             <button type="button" className="mt-5 text-sm font-medium text-ink-muted hover:text-ink" onClick={() => setGuide(false)}>
-              Close
+              {c("close")}
             </button>
           </div>
         </div>

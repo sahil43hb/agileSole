@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import { Banknote, Check, Copy, MapPin, Package, PhoneCall, Truck } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { geoLabel } from "@/content/geo-pk";
 import { Link } from "@/i18n/navigation";
 import { formatPkr } from "@/shared/money";
 import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "./auth-provider";
 import { useWishlist } from "./wishlist-provider";
+import { ShippingEta } from "./shipping-eta";
 
 type Order = {
   number: string;
@@ -19,13 +22,10 @@ type Order = {
   payment: { collectAmount: number };
 };
 
-const STEPS = [
-  { icon: PhoneCall, title: "We call", body: "Confirm on the checkout number before we pack." },
-  { icon: Package, title: "We pack", body: "Packed in Gujranwala once you pick up." },
-  { icon: Truck, title: "You pay COD", body: "Cash to the rider. Easy size exchange." },
-];
-
 export function OrderConfirmation() {
+  const locale = useLocale();
+  const t = useTranslations("confirm");
+  const c = useTranslations("common");
   const params = useSearchParams();
   const number = params.get("number") || "";
   const { customer } = useAuth();
@@ -36,13 +36,13 @@ export function OrderConfirmation() {
 
   useEffect(() => {
     if (!number) {
-      setError("Missing order number");
+      setError(t("missing"));
       return;
     }
     fetch(`/api/v1/orders/confirmation?number=${encodeURIComponent(number)}`, { credentials: "same-origin" })
       .then((r) => r.json())
       .then((json) => {
-        if (!json.ok) setError(json.error?.message || "Order not found");
+        if (!json.ok) setError(json.error?.message || t("notFound"));
         else {
           const next = json.data.order as Order;
           setOrder(next);
@@ -58,8 +58,8 @@ export function OrderConfirmation() {
           }
         }
       })
-      .catch(() => setError("Could not load order"));
-  }, [number, markBought]);
+      .catch(() => setError(t("loadFail")));
+  }, [number, markBought, t]);
 
   async function copyNumber(value: string) {
     try {
@@ -75,10 +75,10 @@ export function OrderConfirmation() {
     return (
       <div className="bg-[#f6f7f5]">
         <div className="mx-auto max-w-lg px-4 py-20 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Order</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("order")}</h1>
           <p className="mt-3 text-sm text-ink-muted">{error}</p>
           <Link href="/shop" className="btn-primary mt-8 inline-flex h-11 rounded-full px-6">
-            Shop
+            {c("shopCollection")}
           </Link>
         </div>
       </div>
@@ -89,14 +89,19 @@ export function OrderConfirmation() {
     return (
       <div className="bg-[#f6f7f5]">
         <div className="mx-auto max-w-lg px-4 py-20">
-          <p className="text-sm text-ink-muted">Loading confirmation…</p>
+          <p className="text-sm text-ink-muted">{t("loading")}</p>
         </div>
       </div>
     );
   }
 
   const collect = order.payment.collectAmount || order.amounts.total;
-  const address = [order.shippingAddress.street, order.shippingAddress.area, order.shippingAddress.city, order.shippingAddress.province]
+  const address = [
+    order.shippingAddress.street,
+    order.shippingAddress.area,
+    geoLabel(order.shippingAddress.city, locale),
+    geoLabel(order.shippingAddress.province, locale),
+  ]
     .filter(Boolean)
     .join(", ");
 
@@ -112,10 +117,10 @@ export function OrderConfirmation() {
               <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-[0_10px_30px_rgba(31,166,74,0.45)]">
                 <Check className="h-7 w-7" strokeWidth={2.75} />
               </span>
-              <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.22em] text-brand">Order placed</p>
-              <h1 className="mt-2 text-4xl font-semibold tracking-tight md:text-5xl">Thank you</h1>
+              <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.22em] text-brand">{t("placed")}</p>
+              <h1 className="mt-2 text-4xl font-semibold tracking-tight md:text-5xl">{t("thanks")}</h1>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/70 md:text-base">
-                We will call <span className="text-white">{order.shippingAddress.phone}</span> before packing. Pay cash when the pair arrives.
+                {t("pendingCall", { phone: order.shippingAddress.phone })}
               </p>
             </div>
             <button
@@ -123,26 +128,30 @@ export function OrderConfirmation() {
               onClick={() => void copyNumber(order.number)}
               className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2.5 text-sm font-medium text-white ring-1 ring-white/15 transition hover:bg-white/15"
             >
-              <span className="text-[11px] uppercase tracking-[0.16em] text-white/50">Order</span>
+              <span className="text-[11px] uppercase tracking-[0.16em] text-white/50">{t("order")}</span>
               <span data-testid="order-number">{order.number}</span>
               <Copy className="h-3.5 w-3.5 text-white/60" />
-              <span className="text-xs text-white/50">{copied ? "Copied" : "Copy"}</span>
+              <span className="text-xs text-white/50">{copied ? t("copied") : t("copy")}</span>
             </button>
           </div>
           <div className="mt-8 flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium">
               <Banknote className="h-3.5 w-3.5 text-brand" />
-              Pay {formatPkr(collect)} on delivery
+              {t("payOnDelivery", { amount: formatPkr(collect) })}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium">
               <Truck className="h-3.5 w-3.5 text-brand" />
-              {order.shippingMethod?.eta || "2–5 working days"}
+              <ShippingEta eta={order.shippingMethod?.eta} />
             </span>
           </div>
         </div>
 
         <ol className="mt-6 grid gap-3 md:grid-cols-3">
-          {STEPS.map((step, i) => (
+          {[
+            { icon: PhoneCall, title: t("weCall"), body: t("weCallBody") },
+            { icon: Package, title: t("wePack"), body: t("wePackBody") },
+            { icon: Truck, title: t("youPay"), body: t("youPayBody") },
+          ].map((step, i) => (
             <li key={step.title} className="relative overflow-hidden rounded-[1.5rem] bg-white p-5 ring-1 ring-black/[0.04]">
               <span className="absolute end-4 top-4 text-3xl font-semibold text-black/[0.05]">{i + 1}</span>
               <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-mist text-brand">
@@ -156,7 +165,7 @@ export function OrderConfirmation() {
 
         <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
           <div className="rounded-[1.6rem] bg-white p-6 ring-1 ring-black/[0.04] md:p-7">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-ink-muted">Your pairs</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-ink-muted">{t("pairs")}</h2>
             <ul className="mt-5 space-y-4">
               {order.items.map((item, i) => (
                 <li key={`${item.title}-${i}`} className="flex gap-4">
@@ -169,7 +178,7 @@ export function OrderConfirmation() {
                   <div className="min-w-0 flex-1">
                     <p className="font-medium leading-snug">{item.title}</p>
                     <p className="mt-0.5 text-sm text-ink-muted">
-                      {item.color ? `${item.color} · ` : ""}EU {item.sizeEu} × {item.qty}
+                      {item.color ? `${item.color} · ` : ""}{c("eu", { size: item.sizeEu })} × {item.qty}
                     </p>
                   </div>
                   <p className="shrink-0 font-semibold">{formatPkr(item.price * item.qty)}</p>
@@ -181,41 +190,41 @@ export function OrderConfirmation() {
               <span>
                 <span className="font-medium text-ink">{order.shippingAddress.fullName}</span>
                 <br />
-                {address || `${order.shippingAddress.city}, ${order.shippingAddress.province}`}
+                {address || `${geoLabel(order.shippingAddress.city, locale)}, ${geoLabel(order.shippingAddress.province, locale)}`}
               </span>
             </p>
           </div>
 
           <aside className="rounded-[1.6rem] bg-white p-6 ring-1 ring-black/[0.04] md:p-7">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-ink-muted">Collect on delivery</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-ink-muted">{c("cod")}</h2>
             <dl className="mt-5 space-y-2.5 text-sm">
               <div className="flex justify-between text-ink-muted">
-                <dt>Subtotal</dt>
+                <dt>{c("subtotal")}</dt>
                 <dd>{formatPkr(order.amounts.subtotal)}</dd>
               </div>
               <div className="flex justify-between text-ink-muted">
-                <dt>Shipping</dt>
-                <dd>{order.amounts.shipping ? formatPkr(order.amounts.shipping) : "Free"}</dd>
+                <dt>{c("shipping")}</dt>
+                <dd>{order.amounts.shipping ? formatPkr(order.amounts.shipping) : c("free")}</dd>
               </div>
               <div className="flex justify-between border-t border-black/[0.06] pt-3 text-xl font-semibold">
-                <dt>Pay the rider</dt>
+                <dt>{t("payRider")}</dt>
                 <dd>{formatPkr(collect)}</dd>
               </div>
             </dl>
-            <p className="mt-3 text-xs leading-relaxed text-ink-muted">No card needed. Keep {formatPkr(collect)} ready in cash.</p>
+            <p className="mt-3 text-xs leading-relaxed text-ink-muted">{t("keepCash", { amount: formatPkr(collect) })}</p>
             <div className="mt-6 flex flex-col gap-2">
               <Link href="/shop" className="btn-primary h-12 w-full rounded-full">
-                Continue shopping
+                {t("continue")}
               </Link>
               <Link
                 href={customer ? "/account/orders" : "/track-order"}
                 className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#f3f5f2] text-sm font-medium transition hover:bg-[#e8ece8]"
               >
-                {customer ? "View in account" : "Track this order"}
+                {customer ? t("viewAccount") : t("track")}
               </Link>
               {!customer ? (
                 <Link href="/account/login" className="py-1 text-center text-sm text-ink-muted hover:text-ink">
-                  Save to account
+                  {t("saveAccount")}
                 </Link>
               ) : null}
             </div>
@@ -223,7 +232,7 @@ export function OrderConfirmation() {
         </div>
 
         <p className="mt-6 text-center text-xs text-ink-muted">
-          Track anytime with {order.number} and {order.shippingAddress.phone}.
+          {t("trackAnytime", { number: order.number, phone: order.shippingAddress.phone })}
         </p>
       </div>
     </div>

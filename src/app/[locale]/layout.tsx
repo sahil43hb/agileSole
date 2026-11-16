@@ -20,6 +20,7 @@ import { localizedPath, openGraphBase, organizationJsonLd, siteUrl } from "@/lib
 import { getPublicSettings } from "@/server/modules/admin/settings.service";
 import { brandIconHref } from "@/lib/brand-icon";
 import { BrandIconSync } from "@/components/brand/brand-icon-sync";
+import { StoreIdentityProvider } from "@/components/store-identity";
 
 type Props = {
   children: ReactNode;
@@ -35,15 +36,16 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const ur = locale === "ur";
-  const title = ur ? `Agile Sole — ${BRAND.tagline.ur}` : `Agile Sole — ${BRAND.tagline.en}`;
+  const settings = await getPublicSettings();
+  const name = settings.name || BRAND.name;
+  const title = ur ? `${name} — ${BRAND.tagline.ur}` : `${name} — ${BRAND.tagline.en}`;
   const description = ur ? BRAND.positioning.ur : BRAND.positioning.en;
-  const { logo } = await getPublicSettings();
-  const icon = brandIconHref(logo);
+  const icon = brandIconHref(settings.logo);
   return {
     metadataBase: new URL(siteUrl()),
-    title: { default: title, template: "%s · Agile Sole" },
+    title: { default: title, template: `%s · ${name}` },
     description,
-    openGraph: openGraphBase(locale),
+    openGraph: openGraphBase(locale, settings),
     twitter: { card: "summary_large_image", title, description, images: [`${siteUrl()}/favicon.png`] },
     icons: {
       icon: [{ url: icon }],
@@ -66,15 +68,19 @@ export default async function LocaleLayout({ children, params }: Props) {
   setRequestLocale(locale);
   const messages = await getMessages();
   const dir = locale === "ur" ? "rtl" : "ltr";
-  const { logo, whatsapp: storeWhatsapp } = await getPublicSettings();
-  const whatsapp = storeWhatsapp || process.env.NEXT_PUBLIC_WHATSAPP || "";
+  const settings = await getPublicSettings();
+  const whatsapp = settings.whatsapp || process.env.NEXT_PUBLIC_WHATSAPP || "";
 
   return (
     <div dir={dir} lang={locale} className={locale === "ur" ? "font-urdu min-h-dvh" : "min-h-dvh"}>
-      <BrandIconSync src={logo} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }} />
+      <BrandIconSync src={settings.logo} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd(settings)) }}
+      />
       <LocaleDocument locale={locale} />
       <NextIntlClientProvider messages={messages}>
+        <StoreIdentityProvider value={settings}>
         <WishlistProvider>
           <AuthProvider>
           <CartProvider>
@@ -89,6 +95,7 @@ export default async function LocaleLayout({ children, params }: Props) {
           </CartProvider>
           </AuthProvider>
         </WishlistProvider>
+        </StoreIdentityProvider>
       </NextIntlClientProvider>
     </div>
   );

@@ -155,12 +155,14 @@ export async function requestDataExport(customerId: string) {
   if (!customer) throw new Error("Account not found");
   customer.dataRequestAt = new Date();
   await customer.save();
-  await Ticket.create({
+  const ticket = await Ticket.create({
     customerId,
     type: "data",
     reason: "Customer requested download/delete of personal data",
     status: "open",
   });
+  const { notifyAdminTicket } = await import("@/server/modules/admin/admin-notice.service");
+  notifyAdminTicket(ticket.toObject());
   return { ok: true as const };
 }
 
@@ -182,6 +184,8 @@ export async function openTicket(customerId: string, raw: unknown) {
     reason: input.reason,
     status: "open",
   });
+  const { notifyAdminTicket } = await import("@/server/modules/admin/admin-notice.service");
+  notifyAdminTicket(ticket.toObject());
   return publicCustomer(ticket.toObject());
 }
 

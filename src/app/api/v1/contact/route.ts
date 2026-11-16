@@ -18,6 +18,8 @@ export async function POST(request: Request) {
       reason: `${body.name} · ${body.contact}\n${body.message}`,
       status: "open",
     });
+    const { notifyAdminTicket } = await import("@/server/modules/admin/admin-notice.service");
+    notifyAdminTicket(ticket.toObject());
     return ok({ ticketId: String(ticket._id) }, 201);
   } catch (err) {
     return fromError(err);

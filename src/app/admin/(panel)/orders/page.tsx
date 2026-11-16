@@ -5,8 +5,10 @@ import Link from "next/link";
 import { Plus, RefreshCw, RotateCcw } from "lucide-react";
 import { formatPkr } from "@/shared/money";
 import {
+  AdminHeaderAction,
   AdminPageHeader,
   AdminSearch,
+  AdminTable,
   EmptyNote,
   MultiSelect,
   SingleSelect,
@@ -94,6 +96,16 @@ export default function AdminOrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statuses, channels, range]);
 
+  useEffect(() => {
+    function onLive(e: Event) {
+      const type = (e as CustomEvent<{ type?: string }>).detail?.type || "";
+      if (type.startsWith("order_")) void load();
+    }
+    window.addEventListener("as-admin-live", onLive);
+    return () => window.removeEventListener("as-admin-live", onLive);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statuses, channels, range, query, from]);
+
   async function resetFilters() {
     setStatuses([]);
     setChannels([]);
@@ -121,13 +133,7 @@ export default function AdminOrdersPage() {
             >
               <RefreshCw className="h-4 w-4" />
             </button>
-            <Link
-              href="/admin/orders/new"
-              className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-medium text-white"
-            >
-              <Plus className="h-4 w-4" />
-              Manual order
-            </Link>
+            <AdminHeaderAction icon={Plus} label="Manual order" href="/admin/orders/new" />
           </>
         }
       />
@@ -157,7 +163,7 @@ export default function AdminOrdersPage() {
       ) : !orders.length ? (
         <EmptyNote>No orders match these filters.</EmptyNote>
       ) : (
-        <div className="overflow-x-auto">
+        <AdminTable>
           <table>
             <thead>
               <tr>
@@ -198,7 +204,7 @@ export default function AdminOrdersPage() {
               })}
             </tbody>
           </table>
-        </div>
+        </AdminTable>
       )}
     </div>
   );

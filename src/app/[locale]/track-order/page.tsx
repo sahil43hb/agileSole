@@ -1,11 +1,13 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { formatPkr } from "@/shared/money";
 import { statusLabel } from "@/shared/order-copy";
 import { OrderTimeline } from "@/components/storefront/order-timeline";
+import { ShippingEta } from "@/components/storefront/shipping-eta";
 import { Link } from "@/i18n/navigation";
+import { geoLabel } from "@/content/geo-pk";
 
 const field =
   "mt-1.5 w-full rounded-2xl border-0 bg-[#f3f5f2] px-4 py-3 text-sm outline-none ring-1 ring-transparent transition placeholder:text-ink-faint focus:bg-white focus:ring-brand/40";
@@ -23,6 +25,8 @@ type Order = {
 
 export default function TrackOrderPage() {
   const locale = useLocale();
+  const t = useTranslations("track");
+  const c = useTranslations("common");
   const [number, setNumber] = useState("");
   const [phone, setPhone] = useState("");
   const [order, setOrder] = useState<Order | null>(null);
@@ -36,7 +40,7 @@ export default function TrackOrderPage() {
       `/api/v1/orders/track?number=${encodeURIComponent(number)}&phone=${encodeURIComponent(phone)}&locale=${locale}`,
     );
     const json = await res.json();
-    if (!json.ok) setError(json.error?.message || "Not found");
+    if (!json.ok) setError(json.error?.message || t("notFound"));
     else setOrder(json.data.order);
   }
 
@@ -44,16 +48,12 @@ export default function TrackOrderPage() {
     <div className="bg-[#f6f7f5]">
       <div className="mx-auto max-w-lg px-4 py-16">
         <div className="rounded-[1.6rem] bg-white p-6 shadow-[0_10px_36px_rgba(17,17,17,0.04)] ring-1 ring-black/[0.04] md:p-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-dark">COD</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">{locale === "ur" ? "آرڈر ٹریک" : "Track order"}</h1>
-          <p className="mt-2 text-sm text-ink-muted">
-            {locale === "ur"
-              ? "تصدیقی صفحے کا آرڈر نمبر اور چیک آؤٹ والا موبائل لکھیں۔"
-              : "Use the order number from your confirmation SMS or page, plus the mobile used at checkout."}
-          </p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-dark">{c("cod")}</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight">{t("title")}</h1>
+          <p className="mt-2 text-sm text-ink-muted">{t("body")}</p>
           <form onSubmit={lookup} className="mt-8 space-y-4" data-testid="track-form">
             <label className="block text-xs font-medium text-ink-muted">
-              {locale === "ur" ? "آرڈر نمبر" : "Order number"}
+              {t("number")}
               <input
                 data-testid="track-number"
                 dir="ltr"
@@ -65,7 +65,7 @@ export default function TrackOrderPage() {
               />
             </label>
             <label className="block text-xs font-medium text-ink-muted">
-              {locale === "ur" ? "موبائل" : "Mobile"}
+              {t("mobile")}
               <input
                 data-testid="track-phone"
                 dir="ltr"
@@ -77,7 +77,7 @@ export default function TrackOrderPage() {
               />
             </label>
             <button type="submit" data-testid="track-submit" className="btn-primary h-12 w-full rounded-full">
-              {locale === "ur" ? "ٹریک" : "Track"}
+              {t("submit")}
             </button>
           </form>
           {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
@@ -89,8 +89,13 @@ export default function TrackOrderPage() {
               {order.number} · {statusLabel(order.status, locale)}
             </p>
             <p className="mt-1 text-sm text-ink-muted">
-              {order.shippingAddress.city}, {order.shippingAddress.province}
-              {order.shippingMethod?.eta ? ` · ${order.shippingMethod.eta}` : ""}
+              {geoLabel(order.shippingAddress.city, locale)}, {geoLabel(order.shippingAddress.province, locale)}
+              {order.shippingMethod?.eta ? (
+                <>
+                  {" · "}
+                  <ShippingEta eta={order.shippingMethod.eta} />
+                </>
+              ) : null}
             </p>
             <div className="mt-6">
               <OrderTimeline status={order.status} locale={locale} shipment={order.shipment} />
@@ -99,14 +104,14 @@ export default function TrackOrderPage() {
               {order.items.map((item, i) => (
                 <li key={`${item.title}-${i}`} className="flex justify-between gap-3">
                   <span>
-                    {item.title} · EU {item.sizeEu} × {item.qty}
+                    {item.title} · {c("eu", { size: item.sizeEu })} × {item.qty}
                   </span>
                 </li>
               ))}
             </ul>
-            <p className="mt-4 font-semibold">COD {formatPkr(order.payment.collectAmount || order.amounts.total)}</p>
+            <p className="mt-4 font-semibold">{c("cod")} {formatPkr(order.payment.collectAmount || order.amounts.total)}</p>
             <Link href="/account/login" className="mt-6 inline-block text-sm font-medium text-brand-dark hover:underline">
-              Sign in to see all orders
+              {t("signIn")}
             </Link>
           </div>
         ) : null}

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CatalogListing } from "@/components/storefront/catalog-listing";
 import { listCatalog } from "@/server/modules/catalog/product.service";
 import { filterQueryRecord, filtersFromSearch } from "@/lib/catalog-query";
@@ -24,11 +24,13 @@ export default async function ShopPage({
   const { locale } = await params;
   const sp = await searchParams;
   setRequestLocale(locale);
+  const t = await getTranslations("shop");
+  const n = await getTranslations("nav");
   const catalog = await listCatalog({ locale, ...filtersFromSearch(sp) });
 
   return (
     <CatalogListing
-      title={locale === "ur" ? "دکان" : "Shop"}
+      title={t("title")}
       products={catalog.products}
       total={catalog.total}
       page={catalog.page}
@@ -36,7 +38,7 @@ export default async function ShopPage({
       facets={catalog.facets}
       path="/shop"
       query={filterQueryRecord(sp)}
-      crumbs={[{ href: "/", label: "Home" }, { label: locale === "ur" ? "دکان" : "Shop" }]}
+      crumbs={[{ href: "/", label: n("home") }, { label: t("title") }]}
       heroImage="/catalog/banner-shop.jpg"
     />
   );

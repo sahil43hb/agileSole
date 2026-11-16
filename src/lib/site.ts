@@ -9,34 +9,39 @@ export function localizedPath(locale: string, path: string) {
   return `${siteUrl()}/${locale}${clean === "/" ? "" : clean}`;
 }
 
-export function organizationJsonLd() {
+export function organizationJsonLd(store?: { name?: string; city?: string; email?: string; logo?: string }) {
   const url = siteUrl();
+  const name = store?.name?.trim() || BRAND.name;
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: BRAND.name,
+    name,
     url,
     slogan: BRAND.tagline.en,
-    logo: `${url}/favicon.png`,
-    email: "sahilmubeen30@gmail.com",
+    logo: store?.logo ? (store.logo.startsWith("http") ? store.logo : `${url}${store.logo}`) : `${url}/favicon.png`,
+    email: store?.email || "sahilmubeen30@gmail.com",
     telephone: "+923069158103",
     address: {
       "@type": "PostalAddress",
-      addressLocality: BRAND.city,
+      addressLocality: store?.city || BRAND.city,
       addressCountry: "PK",
     },
   };
 }
 
-export function openGraphBase(locale: string) {
+export function openGraphBase(
+  locale: string,
+  store?: { name?: string },
+) {
   const ur = locale === "ur";
+  const name = store?.name?.trim() || BRAND.name;
   return {
     type: "website" as const,
     locale: ur ? "ur_PK" : "en_PK",
-    siteName: BRAND.name,
-    title: ur ? `Agile Sole — ${BRAND.tagline.ur}` : `Agile Sole — ${BRAND.tagline.en}`,
+    siteName: name,
+    title: ur ? `${name} — ${BRAND.tagline.ur}` : `${name} — ${BRAND.tagline.en}`,
     description: ur ? BRAND.positioning.ur : BRAND.positioning.en,
     url: localizedPath(locale, "/"),
-    images: [{ url: `${siteUrl()}/favicon.png`, alt: "Agile Sole" }],
+    images: [{ url: `${siteUrl()}/favicon.png`, alt: name }],
   };
 }

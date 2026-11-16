@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Heart, Menu, Search, ShoppingBag } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Wordmark } from "@/components/brand/logo";
 import { LanguageSwitcher } from "./language-switcher";
@@ -54,13 +55,16 @@ export function HeaderChrome({
   categories,
   collections,
   logoSrc,
+  storeName,
 }: {
   announce: string;
   labels: { search: string; account: string; wishlist: string; cart: string };
   categories: MenuCategory[];
   collections: { slug: string; label: string }[];
   logoSrc?: string;
+  storeName?: string;
 }) {
+  const n = useTranslations("nav");
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { count } = useWishlist();
@@ -78,13 +82,13 @@ export function HeaderChrome({
             <button
               type="button"
               className="grid h-10 w-10 place-items-center rounded-full hover:bg-[#f3f5f3] md:hidden"
-              aria-label="Menu"
+              aria-label={n("menu")}
               onClick={() => setMenuOpen(true)}
             >
               <Menu className="h-5 w-5" />
             </button>
             <Link href="/" className="flex items-center rounded-2xl px-0.5">
-              <Wordmark src={logoSrc} className="h-10 w-auto max-w-[148px] md:h-11 md:max-w-[168px]" />
+              <Wordmark src={logoSrc} alt={storeName} className="h-10 w-auto max-w-[148px] md:h-11 md:max-w-[168px]" />
             </Link>
           </div>
 

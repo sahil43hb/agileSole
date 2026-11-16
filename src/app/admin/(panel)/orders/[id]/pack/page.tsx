@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { formatPkr } from "@/shared/money";
-import { BRAND } from "@/shared/constants";
+import { useStoreIdentity } from "@/components/store-identity";
 
 type Order = {
   number: string;
@@ -17,6 +17,7 @@ type Order = {
 
 export default function PackingSlipPage() {
   const params = useParams<{ id: string }>();
+  const store = useStoreIdentity();
   const [order, setOrder] = useState<Order | null>(null);
 
   useEffect(() => {
@@ -31,8 +32,8 @@ export default function PackingSlipPage() {
     <div className="mx-auto max-w-2xl bg-paper p-8">
       <div className="flex justify-between border-b border-paper-line pb-4">
         <div>
-          <p className="text-xl font-semibold">{BRAND.name}</p>
-          <p className="text-sm text-ink-muted">Packing slip · {BRAND.city}</p>
+          <p className="text-xl font-semibold">{store.name}</p>
+          <p className="text-sm text-ink-muted">Packing slip · {store.city}</p>
         </div>
         <p className="text-lg font-medium">{order.number}</p>
       </div>

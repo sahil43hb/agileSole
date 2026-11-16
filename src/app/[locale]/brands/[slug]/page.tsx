@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CatalogListing } from "@/components/storefront/catalog-listing";
 import { listCatalog } from "@/server/modules/catalog/product.service";
 import { getBrandBySlug } from "@/server/modules/catalog/taxonomy.service";
@@ -17,6 +17,7 @@ export default async function BrandPage({
   const { locale, slug } = await params;
   const sp = await searchParams;
   setRequestLocale(locale);
+  const n = await getTranslations("nav");
   const brand = await getBrandBySlug(slug, locale);
   if (!brand) notFound();
   const catalog = await listCatalog({ locale, brand: slug, ...filtersFromSearch(sp) });
@@ -32,7 +33,7 @@ export default async function BrandPage({
       facets={catalog.facets}
       path={`/brands/${slug}`}
       query={filterQueryRecord(sp)}
-      crumbs={[{ href: "/", label: "Home" }, { href: "/brands", label: "Brands" }, { label: brand.name }]}
+      crumbs={[{ href: "/", label: n("home") }, { href: "/brands", label: n("brands") }, { label: brand.name }]}
       heroImage={slug === "agile-sole" ? "/catalog/banner-house-brand.jpg" : "/catalog/banner-brands.jpg"}
     />
   );

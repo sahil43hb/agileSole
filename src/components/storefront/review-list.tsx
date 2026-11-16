@@ -1,11 +1,8 @@
-import { Star } from "lucide-react";
-import type { PublicReview } from "@/server/modules/catalog/review.service";
+"use client";
 
-const FIT_LABEL = {
-  small: "Runs small",
-  true: "True to size",
-  large: "Runs large",
-} as const;
+import { Star } from "lucide-react";
+import { useTranslations } from "next-intl";
+import type { PublicReview } from "@/server/modules/catalog/review.service";
 
 export function ReviewList({
   reviews,
@@ -18,13 +15,20 @@ export function ReviewList({
   count: number;
   fit: { small: number; true: number; large: number };
 }) {
+  const t = useTranslations("reviewsUi");
+  const a = useTranslations("account");
+  const FIT_LABEL = {
+    small: t("runsSmall"),
+    true: t("true"),
+    large: t("runsLarge"),
+  } as const;
   const totalFit = fit.small + fit.true + fit.large || 1;
   const filled = Math.round(average);
 
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-dark">From wearers</p>
-      <h2 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">Reviews</h2>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-dark">{t("fromWearers")}</p>
+      <h2 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">{a("reviews")}</h2>
 
       {count ? (
         <div className="mt-6 flex flex-wrap items-end gap-6">
@@ -36,7 +40,7 @@ export function ReviewList({
               ))}
             </div>
             <p className="mt-2 text-sm text-ink-muted">
-              {count} review{count === 1 ? "" : "s"}
+              {count === 1 ? t("count", { count }) : t("countPlural", { count })}
             </p>
           </div>
           <div className="min-w-[12rem] flex-1 space-y-2.5">
@@ -52,7 +56,7 @@ export function ReviewList({
         </div>
       ) : (
         <p className="mt-4 max-w-md text-sm leading-relaxed text-ink-muted">
-          Be the first to rate this pair. Fit notes help the next family in Gujranwala pick a size.
+          {t("first")}
         </p>
       )}
 

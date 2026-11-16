@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Mail, Phone, User, X } from "lucide-react";
 import { formatPkr } from "@/shared/money";
-import { AdminModal, AdminPageHeader, AdminSearch, ConfirmDialog, EmptyNote, RowEditButton, StatusBadge } from "@/components/admin/ui";
+import { AdminModal, AdminPageHeader, AdminSearch, AdminTable, ConfirmDialog, EmptyNote, RowEditButton, StatusBadge } from "@/components/admin/ui";
 
 const fieldClass =
   "mt-1.5 h-11 w-full rounded-xl border border-[#e7ebe8] bg-[#f7f8f7] px-3.5 text-sm text-ink outline-none transition placeholder:text-ink-faint focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20";
@@ -68,10 +68,10 @@ export default function AdminCustomersPage() {
       <AdminPageHeader
         title="Customers"
         description={`${rows.length} in the book · COD history and RTO risk`}
-        actions={
-          <AdminSearch value={query} onChange={setQuery} placeholder="Search name, phone, email" />
-        }
       />
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--admin-line)] bg-white p-3 shadow-sm">
+        <AdminSearch value={query} onChange={setQuery} placeholder="Search name, phone, email" />
+      </div>
       <div className="flex flex-wrap gap-2">
         {[
           { id: "all", label: "All" },
@@ -93,6 +93,7 @@ export default function AdminCustomersPage() {
       {!visible.length ? (
         <EmptyNote>No customers match.</EmptyNote>
       ) : (
+        <AdminTable>
         <table>
           <thead>
             <tr>
@@ -139,6 +140,7 @@ export default function AdminCustomersPage() {
             ))}
           </tbody>
         </table>
+        </AdminTable>
       )}
 
       {editing ? (

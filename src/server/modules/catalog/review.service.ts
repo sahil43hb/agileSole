@@ -104,6 +104,8 @@ export async function submitReview(raw: {
     customerId: raw.customerId,
     status: "pending",
   });
+  const { notifyAdminReview } = await import("@/server/modules/admin/admin-notice.service");
+  notifyAdminReview(created.toObject());
   return JSON.parse(JSON.stringify(created));
 }
 

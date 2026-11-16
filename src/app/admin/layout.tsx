@@ -7,10 +7,10 @@ import { brandIconHref } from "@/lib/brand-icon";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { logo } = await getPublicSettings();
+  const { logo, name } = await getPublicSettings();
   const icon = brandIconHref(logo);
   return {
-    title: "Agile Sole Admin",
+    title: `${name} Admin`,
     robots: { index: false, follow: false },
     icons: {
       icon: [{ url: icon }],
@@ -21,5 +21,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function AdminRootLayout({ children }: { children: ReactNode }) {
-  return <div className="h-dvh overflow-hidden bg-[#f3f5f4] text-ink">{children}</div>;
+  return <div className="h-dvh max-h-dvh min-h-0 overflow-hidden bg-[#f3f5f4] text-ink">{children}</div>;
 }
