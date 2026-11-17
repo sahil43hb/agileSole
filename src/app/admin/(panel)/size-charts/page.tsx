@@ -1,9 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { Plus, RotateCcw, Trash2 } from "lucide-react";
 import {
   AdminModal,
+  AdminModalBody,
+  AdminModalFooter,
+  AdminModalHeader,
   AdminHeaderAction,
   AdminPageHeader,
   AdminSearch,
@@ -12,9 +15,14 @@ import {
   EmptyNote,
   SingleSelect,
   RowEditButton,
+  modalBtnPrimary,
+  modalBtnSecondary,
   rowBtnDanger,
 } from "@/components/admin/ui";
 import { AppSelect } from "@/components/ui/app-select";
+import { toast, toastApiError, toastFromResponse } from "@/components/ui/toast";
+import { BusyLabel } from "@/components/ui/spinner";
+import { useCan } from "@/components/admin/access";
 
 type Row = { eu?: string; pk?: string; uk?: string; us?: string; cm?: string };
 type Chart = {
@@ -29,7 +37,7 @@ type Chart = {
 const field =
   "mt-1.5 h-11 w-full rounded-xl border border-[#e7ebe8] bg-[#f7f8f7] px-3.5 text-sm text-ink outline-none transition placeholder:text-ink-faint focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20";
 const cell =
-  "h-9 w-full rounded-lg border border-[#e7ebe8] bg-white px-2 text-sm outline-none focus:border-brand";
+  "h-11 w-full rounded-xl border border-[#e7ebe8] bg-white px-3 text-center text-sm tabular-nums outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/20";
 
 const COLS = [
   { key: "eu" as const, label: "EU", hint: "Europe", desc: "European size — the size this shop sells." },
@@ -57,6 +65,7 @@ const emptyForm = {
 };
 
 export default function AdminSizeChartsPage() {
+  const access = useCan("size_charts");
   const [charts, setCharts] = useState<Chart[]>([]);
   const [query, setQuery] = useState("");
   const [type, setType] = useState("all");
@@ -133,9 +142,10 @@ export default function AdminSizeChartsPage() {
     const json = await res.json();
     setBusy(false);
     if (!json.ok) {
-      setFormError(json.error?.message || "Could not save");
+      toastApiError(json, "Could not save");
       return;
     }
+    toast.success("Size chart saved");
     setEditing(null);
     await load();
   }
@@ -143,8 +153,13 @@ export default function AdminSizeChartsPage() {
   async function remove() {
     if (!pending) return;
     setBusy(true);
-    await fetch(`/api/v1/admin/size-charts/${pending.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/v1/admin/size-charts/${pending.id}`, { method: "DELETE" });
     setBusy(false);
+    const result = await toastFromResponse(res, "Could not delete", "Size chart deleted");
+    if (!result.ok) {
+      setPending(null);
+      return;
+    }
     setPending(null);
     await load();
   }
@@ -154,7 +169,7 @@ export default function AdminSizeChartsPage() {
       <AdminPageHeader
         title="Size charts"
         description="How EU sizes map to Pakistan, UK, US, and foot length in centimetres."
-        actions={<AdminHeaderAction icon={Plus} label="Add chart" onClick={openNew} />}
+        actions={access.create ? <AdminHeaderAction icon={Plus} label="Add chart" onClick={openNew} /> : undefined}
       />
 
       <div className="grid gap-3 rounded-2xl border border-[var(--admin-line)] bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-5">
@@ -215,10 +230,12 @@ export default function AdminSizeChartsPage() {
                 <td>{c.rows.length}</td>
                 <td>
                   <div className="flex flex-wrap items-center justify-end gap-2">
-                    <RowEditButton onClick={() => openEdit(c)} />
+                    {access.update ? <RowEditButton onClick={() => openEdit(c)} /> : null}
+                    {access.delete ? (
                     <button type="button" className={rowBtnDanger} onClick={() => setPending(c)}>
                       Delete
                     </button>
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -229,27 +246,15 @@ export default function AdminSizeChartsPage() {
       )}
 
       {editing ? (
-        <AdminModal onClose={() => setEditing(null)}>
-          <form onSubmit={save} className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-[#e7ebe8] px-6 py-5">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">Catalog</p>
-                <h2 className="mt-1 text-lg font-semibold tracking-tight">
-                  {editing === "new" ? "Add size chart" : "Edit size chart"}
-                </h2>
-                <p className="mt-1 text-sm text-ink-muted">EU is the shop size. PK is Pakistan. UK / US are conversions. CM is foot length.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditing(null)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-ink-muted hover:bg-[#f4f7f5] hover:text-ink"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4 overflow-y-auto px-6 py-5">
+        <AdminModal onClose={() => setEditing(null)} size="xl">
+          <form onSubmit={save} className="flex min-h-0 flex-1 flex-col">
+            <AdminModalHeader
+              kicker="Catalog"
+              title={editing === "new" ? "Add size chart" : "Edit size chart"}
+              description="EU is the shop size. PK is Pakistan. UK / US are conversions. CM is foot length."
+              onClose={() => setEditing(null)}
+            />
+            <AdminModalBody className="space-y-4">
               <label className="block text-[13px] font-medium text-ink-muted">
                 English title
                 <input required className={field} value={form.titleEn} onChange={(e) => setForm({ ...form, titleEn: e.target.value })} />
@@ -274,68 +279,109 @@ export default function AdminSizeChartsPage() {
               </div>
 
               <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-[13px] font-medium text-ink-muted">Conversion rows</p>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[13px] font-medium text-ink">Conversion rows</p>
+                    <p className="text-xs text-ink-faint">{form.rows.length} size{form.rows.length === 1 ? "" : "s"}</p>
+                  </div>
                   <button
                     type="button"
-                    className="text-sm font-medium text-brand-dark"
+                    className="inline-flex h-9 items-center rounded-full bg-brand-mist px-3 text-xs font-semibold text-brand-dark hover:bg-brand/15"
                     onClick={() => setForm({ ...form, rows: [...form.rows, { eu: "", pk: "", uk: "", us: "", cm: "" }] })}
                   >
-                    + Add size
+                    <Plus className="me-1 h-3.5 w-3.5" />
+                    Add size
                   </button>
                 </div>
-                <div className="overflow-x-auto rounded-2xl border border-[#e7ebe8]">
-                  <table className="variant-grid min-w-full text-left text-sm">
-                    <thead>
-                      <tr>
+
+                <div className="space-y-3 sm:hidden">
+                  {form.rows.map((r, i) => (
+                    <div key={i} className="rounded-2xl border border-[#e7ebe8] bg-[#f7f8f7] p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-xs font-semibold text-ink-muted">Size {i + 1}</p>
+                        <button
+                          type="button"
+                          disabled={form.rows.length === 1}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-faint hover:bg-white hover:text-red-700 disabled:opacity-30"
+                          onClick={() => setForm({ ...form, rows: form.rows.filter((_, j) => j !== i) })}
+                          aria-label="Remove size"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
                         {COLS.map((c) => (
-                          <th key={c.key}>
+                          <label key={c.key} className="block text-[11px] font-medium text-ink-muted">
                             {c.label}
-                            <span className="ms-1 font-normal normal-case tracking-normal text-ink-faint">{c.hint}</span>
-                          </th>
+                            <span className="ms-1 font-normal text-ink-faint">{c.hint}</span>
+                            <input
+                              className={`${cell} mt-1`}
+                              value={r[c.key] || ""}
+                              onChange={(e) => setRow(i, c.key, e.target.value)}
+                              placeholder={c.key === "cm" ? "25.5" : c.key === "eu" ? "40" : "6"}
+                              inputMode="decimal"
+                            />
+                          </label>
                         ))}
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {form.rows.map((r, i) => (
-                        <tr key={i}>
-                          {COLS.map((c) => (
-                            <td key={c.key}>
-                              <input className={cell} value={r[c.key] || ""} onChange={(e) => setRow(i, c.key, e.target.value)} />
-                            </td>
-                          ))}
-                          <td>
-                            <button
-                              type="button"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-faint hover:text-red-700"
-                              onClick={() => setForm({ ...form, rows: form.rows.filter((_, j) => j !== i) })}
-                              aria-label="Remove row"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="hidden overflow-x-auto rounded-2xl border border-[#e7ebe8] sm:block">
+                  <div className="min-w-[40rem]">
+                    <div className="grid grid-cols-[3rem_repeat(5,minmax(0,1fr))_2.75rem] gap-2 border-b border-[#eef1ef] bg-[#f7f8f7] px-3 py-2.5">
+                      <p className="self-end pb-1 text-[11px] font-medium uppercase tracking-wide text-ink-faint">#</p>
+                      {COLS.map((c) => (
+                        <div key={c.key} className="min-w-0 px-1">
+                          <p className="text-sm font-semibold tracking-tight text-ink">{c.label}</p>
+                          <p className="truncate text-[11px] text-ink-faint">{c.hint}</p>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                      <span />
+                    </div>
+                    <div className="divide-y divide-[#eef1ef]">
+                      {form.rows.map((r, i) => (
+                        <div key={i} className="grid grid-cols-[3rem_repeat(5,minmax(0,1fr))_2.75rem] items-center gap-2 px-3 py-2.5">
+                          <p className="text-center text-xs font-medium tabular-nums text-ink-faint">{i + 1}</p>
+                          {COLS.map((c) => (
+                            <input
+                              key={c.key}
+                              className={cell}
+                              value={r[c.key] || ""}
+                              onChange={(e) => setRow(i, c.key, e.target.value)}
+                              placeholder={c.key === "cm" ? "25.5" : c.key === "eu" ? "40" : "6"}
+                              inputMode="decimal"
+                              aria-label={`${c.label} size ${i + 1}`}
+                            />
+                          ))}
+                          <button
+                            type="button"
+                            disabled={form.rows.length === 1}
+                            className="flex h-10 w-10 items-center justify-center rounded-xl text-ink-faint hover:bg-red-50 hover:text-red-700 disabled:opacity-30"
+                            onClick={() => setForm({ ...form, rows: form.rows.filter((_, j) => j !== i) })}
+                            aria-label="Remove size"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
               {formError ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p> : null}
-            </div>
-
-            <div className="flex items-center justify-end gap-2 border-t border-[#e7ebe8] bg-[#f7f8f7] px-6 py-4">
-              <button
-                type="button"
-                onClick={() => setEditing(null)}
-                className="h-10 rounded-xl border border-[#e7ebe8] bg-white px-4 text-sm font-medium text-ink"
-              >
+            </AdminModalBody>
+            <AdminModalFooter>
+              <button type="button" onClick={() => setEditing(null)} className={modalBtnSecondary}>
                 Cancel
               </button>
-              <button type="submit" disabled={busy} className="h-10 rounded-xl bg-brand px-5 text-sm font-medium text-white disabled:opacity-60">
-                {busy ? "Saving…" : editing === "new" ? "Create chart" : "Save changes"}
+              <button type="submit" disabled={busy} className={modalBtnPrimary}>
+                <BusyLabel loading={busy} label="Saving…">
+                  {editing === "new" ? "Create chart" : "Save changes"}
+                </BusyLabel>
               </button>
-            </div>
+            </AdminModalFooter>
           </form>
         </AdminModal>
       ) : null}

@@ -8,6 +8,8 @@ import { AdminHeaderAction, AdminPageHeader } from "@/components/admin/ui";
 import { slugify } from "@/shared/money";
 import { AppSelect } from "@/components/ui/app-select";
 import { SwitchTrack } from "@/components/ui/switch";
+import { toast, toastApiError } from "@/components/ui/toast";
+import { useCan } from "@/components/admin/access";
 
 type Loc = { en: string; ur: string };
 type Variant = {
@@ -69,6 +71,8 @@ export function ProductForm({
   sizeCharts: { code: string; title: string }[];
 }) {
   const router = useRouter();
+  const access = useCan("products");
+  const canSave = initial?._id ? access.update : access.create;
   const [title, setTitle] = useState<Loc>(initial?.title || { en: "", ur: "" });
   const [description, setDescription] = useState<Loc>(initial?.description || { en: "", ur: "" });
   const [fitNote, setFitNote] = useState<Loc>(initial?.fitNote || { en: "", ur: "" });
@@ -145,8 +149,12 @@ export function ProductForm({
     body.set("file", file);
     const res = await fetch("/api/v1/admin/media", { method: "POST", body });
     const json = await res.json();
-    if (!json.ok) throw new Error(json.error?.message || "Upload failed");
+    if (!json.ok) {
+      toastApiError(json, "Could not upload image");
+      return;
+    }
     setImages((prev) => [...prev, json.data.url]);
+    toast.success("Photo added");
   }
 
   async function onSubmit(e: FormEvent) {
@@ -194,9 +202,10 @@ export function ProductForm({
     const json = await res.json();
     setSaving(false);
     if (!json.ok) {
-      setError(json.error?.message || "Could not save");
+      toastApiError(json, "Could not save");
       return;
     }
+    toast.success("Product saved");
     router.push("/admin/products");
     router.refresh();
   }
@@ -222,6 +231,7 @@ export function ProductForm({
                     variant="secondary"
                   />
                 ) : null}
+                {canSave ? (
                 <AdminHeaderAction
                   icon={Check}
                   type="submit"
@@ -229,6 +239,7 @@ export function ProductForm({
                   loadingLabel="Saving…"
                   disabled={saving}
                 />
+                ) : null}
               </>
             }
           />
@@ -284,7 +295,7 @@ export function ProductForm({
                   className="sr-only"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) upload(file).catch((err) => setError(err.message));
+                    if (file) void upload(file);
                   }}
                 />
               </label>

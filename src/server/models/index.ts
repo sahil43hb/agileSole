@@ -1,4 +1,5 @@
 export { Staff } from "./staff";
+export { Role } from "./role";
 export { Customer } from "./customer";
 export { OtpChallenge } from "./otp";
 export { Setting } from "./setting";

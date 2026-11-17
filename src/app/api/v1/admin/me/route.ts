@@ -1,4 +1,4 @@
-import { fail, fromError, ok } from "@/server/lib/api";
+import { fromError, ok } from "@/server/lib/api";
 import { requireAdminApi } from "@/server/lib/require-admin";
 import { updateOwnProfile } from "@/server/modules/admin/staff.service";
 import { writeAudit } from "@/server/modules/admin/audit.service";
@@ -24,9 +24,6 @@ export async function PATCH(request: Request) {
     });
     return ok({ staff });
   } catch (err) {
-    if (err instanceof Error && err.message !== "Something went wrong") {
-      return fail("VALIDATION", err.message, 400);
-    }
     return fromError(err);
   }
 }

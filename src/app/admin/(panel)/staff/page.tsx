@@ -1,9 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Plus, RotateCcw, X } from "lucide-react";
+import { Plus, RotateCcw } from "lucide-react";
 import {
   AdminModal,
+  AdminModalBody,
+  AdminModalFooter,
+  AdminModalHeader,
   AdminHeaderAction,
   AdminPageHeader,
   AdminSearch,
@@ -14,46 +17,53 @@ import {
   StatusBadge,
   formatAdminDate,
   RowEditButton,
+  modalBtnPrimary,
+  modalBtnSecondary,
   rowBtn,
   rowBtnDanger,
 } from "@/components/admin/ui";
 import { AppSelect } from "@/components/ui/app-select";
 import { SwitchTrack } from "@/components/ui/switch";
+import { toast, toastApiError, toastFromResponse } from "@/components/ui/toast";
+import { BusyLabel } from "@/components/ui/spinner";
+import { useCan } from "@/components/admin/access";
 
-type Staff = { id: string; name: string; email: string; role: string; isActive: boolean; lastLoginAt?: string };
+type Staff = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  roleId: string;
+  roleName: string;
+  isActive: boolean;
+  lastLoginAt?: string;
+};
+
+type RoleOpt = { id: string; name: string; slug: string; isSystem?: boolean };
 
 const field =
   "mt-1.5 h-11 w-full rounded-xl border border-[#e7ebe8] bg-[#f7f8f7] px-3.5 text-sm text-ink outline-none transition placeholder:text-ink-faint focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20";
 
-const ROLES = [
-  { id: "orders", label: "Orders" },
-  { id: "catalog", label: "Catalog" },
-  { id: "content", label: "Content" },
-  { id: "support", label: "Support" },
-  { id: "reporter", label: "Reports" },
-  { id: "super_admin", label: "Owner" },
-];
-
-const emptyForm = { name: "", email: "", password: "", role: "orders", isActive: true };
-
-function roleLabel(role: string) {
-  return ROLES.find((r) => r.id === role)?.label || role.replaceAll("_", " ");
-}
+const emptyForm = { name: "", email: "", password: "", roleId: "", isActive: true };
 
 export default function StaffPage() {
+  const access = useCan("staff");
   const [rows, setRows] = useState<Staff[]>([]);
+  const [roles, setRoles] = useState<RoleOpt[]>([]);
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [editing, setEditing] = useState<Staff | "new" | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [formError, setFormError] = useState("");
   const [pending, setPending] = useState<Staff | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function load() {
-    const res = await fetch("/api/v1/admin/staff");
-    const json = await res.json();
-    if (json.ok) setRows(json.data.staff);
+    const staffRes = await fetch("/api/v1/admin/staff");
+    const staffJson = await staffRes.json();
+    if (staffJson.ok) {
+      setRows(staffJson.data.staff);
+      if (staffJson.data.roles) setRoles(staffJson.data.roles);
+    }
   }
   useEffect(() => {
     void load();
@@ -62,32 +72,29 @@ export default function StaffPage() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((r) => {
-      if (roleFilter !== "all" && r.role !== roleFilter) return false;
+      if (roleFilter !== "all" && r.roleId !== roleFilter && r.role !== roleFilter) return false;
       if (!q) return true;
-      return [r.name, r.email, r.role].some((v) => (v || "").toLowerCase().includes(q));
+      return [r.name, r.email, r.roleName, r.role].some((v) => (v || "").toLowerCase().includes(q));
     });
   }, [rows, query, roleFilter]);
 
   function openNew() {
-    setForm(emptyForm);
-    setFormError("");
+    setForm({ ...emptyForm, roleId: roles.find((r) => !r.isSystem)?.id || roles[0]?.id || "" });
     setEditing("new");
   }
   function openEdit(r: Staff) {
-    setForm({ name: r.name, email: r.email, password: "", role: r.role, isActive: r.isActive !== false });
-    setFormError("");
+    setForm({ name: r.name, email: r.email, password: "", roleId: r.roleId, isActive: r.isActive !== false });
     setEditing(r);
   }
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    setFormError("");
     setBusy(true);
     const isNew = editing === "new";
     const payload: Record<string, unknown> = {
       name: form.name,
       email: form.email,
-      role: form.role,
+      roleId: form.roleId,
       isActive: form.isActive,
     };
     if (form.password) payload.password = form.password;
@@ -100,21 +107,27 @@ export default function StaffPage() {
     const json = await res.json();
     setBusy(false);
     if (!json.ok) {
-      setFormError(json.error?.message || "Could not save");
+      toastApiError(json, "Could not save");
       return;
     }
+    toast.success("Staff saved");
     setEditing(null);
     await load();
   }
 
   async function toggleActive(r: Staff) {
     setBusy(true);
-    await fetch(`/api/v1/admin/staff/${r.id}`, {
+    const res = await fetch(`/api/v1/admin/staff/${r.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: r.name, email: r.email, role: r.role, isActive: !r.isActive }),
+      body: JSON.stringify({ name: r.name, email: r.email, roleId: r.roleId, isActive: !r.isActive }),
     });
     setBusy(false);
+    const result = await toastFromResponse(res, "Could not update staff", r.isActive ? "Staff deactivated" : "Staff activated");
+    if (!result.ok) {
+      setPending(null);
+      return;
+    }
     setPending(null);
     await load();
   }
@@ -123,8 +136,8 @@ export default function StaffPage() {
     <div className="space-y-5">
       <AdminPageHeader
         title="Staff"
-        description={`${rows.length} people who can open this workspace`}
-        actions={<AdminHeaderAction icon={Plus} label="Invite staff" onClick={openNew} />}
+        description={`${rows.length} people who can open this workspace · Access comes from a role, not a hardcoded list`}
+        actions={access.create ? <AdminHeaderAction icon={Plus} label="Invite staff" onClick={openNew} /> : undefined}
       />
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--admin-line)] bg-white p-3 shadow-sm">
         <AdminSearch value={query} onChange={setQuery} placeholder="Search name or email" />
@@ -132,7 +145,7 @@ export default function StaffPage() {
           label="Role"
           value={roleFilter}
           onChange={setRoleFilter}
-          options={[{ id: "all", label: "Any role" }, ...ROLES]}
+          options={[{ id: "all", label: "Any role" }, ...roles.map((r) => ({ id: r.id, label: r.name }))]}
         />
         <button
           type="button"
@@ -178,17 +191,19 @@ export default function StaffPage() {
                   </div>
                 </td>
                 <td className="text-ink-muted">{r.email}</td>
-                <td className="capitalize">{roleLabel(r.role)}</td>
+                <td>{r.roleName || r.role}</td>
                 <td className="whitespace-nowrap text-ink-muted">{formatAdminDate(r.lastLoginAt)}</td>
                 <td>
                   <StatusBadge value={r.isActive ? "active" : "inactive"} />
                 </td>
                 <td>
                   <div className="flex justify-end gap-2">
-                    <RowEditButton onClick={() => openEdit(r)} />
-                    <button type="button" className={r.isActive ? rowBtnDanger : rowBtn} onClick={() => setPending(r)}>
-                      {r.isActive ? "Deactivate" : "Activate"}
-                    </button>
+                    {access.update ? <RowEditButton onClick={() => openEdit(r)} /> : null}
+                    {access.update ? (
+                      <button type="button" className={r.isActive ? rowBtnDanger : rowBtn} onClick={() => setPending(r)}>
+                        {r.isActive ? "Deactivate" : "Activate"}
+                      </button>
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -200,17 +215,13 @@ export default function StaffPage() {
 
       {editing ? (
         <AdminModal onClose={() => setEditing(null)}>
-          <form onSubmit={save} className="relative z-10 w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-[#e7ebe8] px-6 py-5">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">Team</p>
-                <h2 className="mt-1 text-lg font-semibold tracking-tight">{editing === "new" ? "Invite staff" : "Edit staff"}</h2>
-              </div>
-              <button type="button" onClick={() => setEditing(null)} className="flex h-9 w-9 items-center justify-center rounded-xl text-ink-muted hover:bg-[#f4f7f5]" aria-label="Close">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="space-y-4 px-6 py-5">
+          <form onSubmit={save} className="flex min-h-0 flex-1 flex-col">
+            <AdminModalHeader
+              kicker="Team"
+              title={editing === "new" ? "Invite staff" : "Edit staff"}
+              onClose={() => setEditing(null)}
+            />
+            <AdminModalBody className="space-y-4">
               <label className="block text-[13px] font-medium text-ink-muted">
                 Name
                 <input required className={field} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -233,9 +244,9 @@ export default function StaffPage() {
               <label className="block text-[13px] font-medium text-ink-muted">
                 Role
                 <AppSelect
-                  value={form.role}
-                  onChange={(role) => setForm({ ...form, role })}
-                  options={ROLES.map((r) => ({ value: r.id, label: r.label }))}
+                  value={form.roleId}
+                  onChange={(roleId) => setForm({ ...form, roleId })}
+                  options={roles.map((r) => ({ value: r.id, label: r.name }))}
                 />
               </label>
               <button
@@ -246,16 +257,17 @@ export default function StaffPage() {
                 {form.isActive ? "Can sign in" : "Deactivated"}
                 <SwitchTrack on={form.isActive} />
               </button>
-              {formError ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p> : null}
-            </div>
-            <div className="flex justify-end gap-2 border-t border-[#e7ebe8] bg-[#f7f8f7] px-6 py-4">
-              <button type="button" onClick={() => setEditing(null)} className="h-10 rounded-xl border border-[#e7ebe8] bg-white px-4 text-sm font-medium">
+            </AdminModalBody>
+            <AdminModalFooter>
+              <button type="button" onClick={() => setEditing(null)} className={modalBtnSecondary}>
                 Cancel
               </button>
-              <button type="submit" disabled={busy} className="h-10 rounded-xl bg-brand px-5 text-sm font-medium text-white disabled:opacity-60">
-                {busy ? "Saving…" : editing === "new" ? "Send invite" : "Save changes"}
+              <button type="submit" disabled={busy} className={modalBtnPrimary}>
+                <BusyLabel loading={busy} label="Saving…">
+                  {editing === "new" ? "Send invite" : "Save changes"}
+                </BusyLabel>
               </button>
-            </div>
+            </AdminModalFooter>
           </form>
         </AdminModal>
       ) : null}

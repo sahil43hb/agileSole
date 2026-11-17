@@ -1,39 +1,64 @@
 import { z } from "zod";
 import { connectDb } from "@/server/db/connect";
-import { Staff } from "@/server/models";
+import { Role, Staff } from "@/server/models";
 import { hashPassword, verifyPassword } from "@/server/lib/password";
 import { ttlDel } from "@/server/lib/ttl-cache";
-
-export const ROLES = ["super_admin", "catalog", "orders", "content", "support", "reporter"] as const;
 
 const staffInput = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(8).optional(),
-  role: z.enum(ROLES),
+  roleId: z.string().min(1, "Choose a role"),
   isActive: z.boolean().optional(),
 });
+
+async function resolveRole(roleId: string) {
+  const role = await Role.findById(roleId);
+  if (!role) throw new Error("Choose a valid role");
+  return role;
+}
 
 export async function listStaff() {
   await connectDb();
   const rows = await Staff.find().sort({ createdAt: -1 }).lean();
-  return rows.map((r) => ({
-    id: String(r._id),
-    name: r.name,
-    email: r.email,
-    role: r.role,
-    isActive: r.isActive,
-    lastLoginAt: r.lastLoginAt,
-  }));
+  const roles = await Role.find().lean();
+  const byId = new Map(roles.map((r) => [String(r._id), r]));
+  const bySlug = new Map(roles.map((r) => [r.slug, r]));
+  return rows.map((r) => {
+    const role = (r.roleId && byId.get(String(r.roleId))) || bySlug.get(r.role);
+    return {
+      id: String(r._id),
+      name: r.name,
+      email: r.email,
+      role: role?.slug || r.role,
+      roleId: role ? String(role._id) : String(r.roleId || ""),
+      roleName: role?.name || r.role,
+      isActive: r.isActive,
+      lastLoginAt: r.lastLoginAt,
+    };
+  });
 }
 
-export async function upsertStaff(raw: unknown, id?: string) {
+export async function upsertStaff(raw: unknown, id?: string, actor?: { isOwner?: boolean }) {
   await connectDb();
   const input = staffInput.parse(raw);
+  const role = await resolveRole(input.roleId);
+  if ((role.slug === "owner" || role.isSystem) && !actor?.isOwner) {
+    throw new Error("Only an owner can assign the owner role");
+  }
+  if (id && input.isActive === false) {
+    const current = await Staff.findById(id);
+    const currentSlug = current ? (await Role.findById(current.roleId))?.slug || current.role : "";
+    if (currentSlug === "owner" || currentSlug === "super_admin") {
+      const owners = await Staff.countDocuments({ isActive: true, $or: [{ role: "owner" }, { role: "super_admin" }] });
+      if (owners <= 1) throw new Error("Keep at least one active owner");
+    }
+  }
   const payload: Record<string, unknown> = {
     name: input.name,
     email: input.email.toLowerCase(),
-    role: input.role,
+    roleId: role._id,
+    role: role.slug,
     isActive: input.isActive !== false,
   };
   if (input.password) payload.passwordHash = await hashPassword(input.password);
@@ -41,11 +66,28 @@ export async function upsertStaff(raw: unknown, id?: string) {
     if (!input.password) delete payload.passwordHash;
     const row = await Staff.findByIdAndUpdate(id, payload, { new: true });
     if (!row) throw new Error("Staff not found");
-    return { id: String(row._id), name: row.name, email: row.email, role: row.role, isActive: row.isActive };
+    ttlDel(`staff:${id}`);
+    return {
+      id: String(row._id),
+      name: row.name,
+      email: row.email,
+      role: role.slug,
+      roleId: String(role._id),
+      roleName: role.name,
+      isActive: row.isActive,
+    };
   }
   if (!input.password) throw new Error("Password required for new staff");
   const created = await Staff.create(payload);
-  return { id: String(created._id), name: created.name, email: created.email, role: created.role, isActive: created.isActive };
+  return {
+    id: String(created._id),
+    name: created.name,
+    email: created.email,
+    role: role.slug,
+    roleId: String(role._id),
+    roleName: role.name,
+    isActive: created.isActive,
+  };
 }
 
 export async function updateOwnProfile(
@@ -85,11 +127,11 @@ export async function updateOwnProfile(
 }
 
 export function canRole(role: string, area: string) {
-  if (role === "super_admin") return true;
+  if (role === "super_admin" || role === "owner") return true;
   const map: Record<string, string[]> = {
     orders: ["orders", "tickets", "customers"],
-    catalog: ["products", "inventory", "categories", "brands", "collections"],
-    content: ["cms", "faqs", "charts", "reviews", "settings"],
+    catalog: ["products", "inventory", "categories", "brands", "collections", "size_charts"],
+    content: ["homepage", "faqs", "reviews", "settings"],
     support: ["tickets", "reviews", "customers"],
     reporter: ["reports", "dashboard"],
   };

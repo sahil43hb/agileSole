@@ -15,6 +15,7 @@ import {
   StatusBadge,
   formatAdminDate,
 } from "@/components/admin/ui";
+import { useCan } from "@/components/admin/access";
 
 type Order = {
   _id: string;
@@ -64,6 +65,7 @@ function fromDays(days: number) {
 }
 
 export default function AdminOrdersPage() {
+  const access = useCan("orders");
   const [statuses, setStatuses] = useState<string[]>([]);
   const [channels, setChannels] = useState<string[]>([]);
   const [range, setRange] = useState("all");
@@ -133,7 +135,7 @@ export default function AdminOrdersPage() {
             >
               <RefreshCw className="h-4 w-4" />
             </button>
-            <AdminHeaderAction icon={Plus} label="Manual order" href="/admin/orders/new" />
+            {access.create ? <AdminHeaderAction icon={Plus} label="Manual order" href="/admin/orders/new" /> : null}
           </>
         }
       />

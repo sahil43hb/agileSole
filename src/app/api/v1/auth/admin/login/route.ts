@@ -5,8 +5,8 @@ import { loginStaff } from "@/server/modules/auth/admin.service";
 import { ADMIN_COOKIE, cookieOptions } from "@/server/lib/session";
 
 const bodySchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.string().email("Enter a valid email"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 export async function POST(request: Request) {

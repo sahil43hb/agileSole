@@ -3,12 +3,8 @@ import { requireAdminApi } from "@/server/lib/require-admin";
 import { listAudit } from "@/server/modules/admin/audit.service";
 
 export async function GET() {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminApi("audit", "view");
   if (gate.response) return gate.response;
-  if (gate.staff!.role !== "super_admin" && gate.staff!.role !== "reporter") {
-    const { fail } = await import("@/server/lib/api");
-    return fail("FORBIDDEN", "Not allowed", 403);
-  }
   try {
     return ok({ entries: await listAudit(200) });
   } catch (err) {

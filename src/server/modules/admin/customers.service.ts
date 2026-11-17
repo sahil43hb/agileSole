@@ -1,6 +1,23 @@
 import { z } from "zod";
 import { connectDb } from "@/server/db/connect";
-import { Customer, Order } from "@/server/models";
+import { asDoc } from "@/server/lib/lean";
+import { Customer, Order, Ticket } from "@/server/models";
+import { normalizePkPhone, pkPhoneField } from "@/shared/phone";
+
+type CustomerLean = {
+  _id: unknown;
+  name?: string;
+  phone?: string;
+  email?: string;
+  locale?: string;
+  preferredGender?: string;
+  whatsappOptIn?: boolean;
+  marketingOptIn?: boolean;
+  rtoCount?: number;
+  blockedAt?: Date | null;
+  createdAt?: Date;
+  addresses?: unknown[];
+};
 
 export async function listCustomers() {
   await connectDb();
@@ -32,12 +49,71 @@ export async function listCustomers() {
   });
 }
 
+export async function getCustomerDetail(id: string) {
+  await connectDb();
+  const row = asDoc<CustomerLean>(await Customer.findById(id).lean());
+  if (!row) return null;
+  const customerId = String(row._id);
+  const phone = row.phone || "";
+  const orderFilter: Record<string, unknown> = { $or: [{ customerId }] };
+  if (phone) orderFilter.$or = [{ customerId }, { "shippingAddress.phone": phone }];
+  const [orders, tickets] = await Promise.all([
+    Order.find(orderFilter).sort({ createdAt: -1 }).limit(100).lean(),
+    Ticket.find({ customerId }).sort({ createdAt: -1 }).limit(50).lean(),
+  ]);
+  const ltv = orders.reduce((sum, o) => sum + Number((o as { amounts?: { total?: number } }).amounts?.total || 0), 0);
+  return {
+    customer: {
+      id: customerId,
+      name: row.name || "",
+      phone: row.phone || "",
+      email: row.email || "",
+      locale: row.locale || "en",
+      preferredGender: row.preferredGender || "",
+      whatsappOptIn: Boolean(row.whatsappOptIn),
+      marketingOptIn: Boolean(row.marketingOptIn),
+      rtoCount: row.rtoCount || 0,
+      blockedAt: row.blockedAt || null,
+      createdAt: row.createdAt,
+      addresses: JSON.parse(JSON.stringify(row.addresses || [])),
+    },
+    stats: {
+      orders: orders.length,
+      ltv,
+      tickets: tickets.length,
+    },
+    orders: orders.map((o) => {
+      const rowOrder = JSON.parse(JSON.stringify(o)) as {
+        _id: string;
+        number: string;
+        status: string;
+        channel: string;
+        createdAt: string;
+        amounts?: { total?: number; subtotal?: number };
+        items?: { title?: string; sku?: string; qty?: number; price?: number }[];
+        payment?: { status?: string };
+      };
+      return {
+        _id: rowOrder._id,
+        number: rowOrder.number,
+        status: rowOrder.status,
+        channel: rowOrder.channel,
+        createdAt: rowOrder.createdAt,
+        amounts: rowOrder.amounts,
+        payment: rowOrder.payment,
+        items: rowOrder.items || [],
+      };
+    }),
+    tickets: tickets.map((t) => JSON.parse(JSON.stringify(t))),
+  };
+}
+
 export async function updateCustomer(id: string, raw: unknown) {
   await connectDb();
   const input = z
     .object({
       name: z.string().min(1),
-      phone: z.string().min(10),
+      phone: pkPhoneField,
       email: z.string().email().optional().or(z.literal("")),
       locale: z.enum(["en", "ur"]).optional(),
       rtoCount: z.number().int().min(0).optional(),
@@ -47,7 +123,7 @@ export async function updateCustomer(id: string, raw: unknown) {
   const customer = await Customer.findById(id);
   if (!customer) throw new Error("Customer not found");
 
-  const phone = input.phone.trim();
+  const phone = normalizePkPhone(input.phone);
   const email = (input.email || "").trim().toLowerCase();
 
   const phoneTaken = await Customer.findOne({ phone, _id: { $ne: id } });

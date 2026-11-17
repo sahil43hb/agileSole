@@ -17,6 +17,8 @@ import {
   rowBtn,
   rowBtnDanger,
 } from "@/components/admin/ui";
+import { toastFromResponse } from "@/components/ui/toast";
+import { useCan } from "@/components/admin/access";
 
 type Row = {
   id: string;
@@ -47,6 +49,7 @@ const STATUSES = [
 ];
 
 export default function ProductsPage() {
+  const access = useCan("products");
   const [rows, setRows] = useState<Row[]>([]);
   const [query, setQuery] = useState("");
   const [genders, setGenders] = useState<string[]>([]);
@@ -76,12 +79,18 @@ export default function ProductsPage() {
 
   async function setStatus(id: string, status: string) {
     setBusy(true);
-    await fetch(`/api/v1/admin/products/${id}`, {
+    const res = await fetch(`/api/v1/admin/products/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
     setBusy(false);
+    const label = status === "archived" ? "Product deleted" : status === "active" ? "Product activated" : "Product set inactive";
+    const result = await toastFromResponse(res, "Could not update product", label);
+    if (!result.ok) {
+      setPending(null);
+      return;
+    }
     setPending(null);
     await load();
   }
@@ -92,10 +101,12 @@ export default function ProductsPage() {
         title="Products"
         description={`${rows.length} styles in the catalog`}
         actions={
+          access.create ? (
           <>
             <AdminHeaderAction icon={Upload} label="Import CSV" href="/admin/products/import" variant="secondary" />
             <AdminHeaderAction icon={Plus} label="Add product" href="/admin/products/new" />
           </>
+          ) : undefined
         }
       />
 
@@ -161,17 +172,20 @@ export default function ProductsPage() {
                 <td className="font-medium">{formatPkr(p.price)}</td>
                 <td>
                   <div className="flex flex-nowrap items-center justify-end gap-1.5">
-                    <RowEditButton href={`/admin/products/${p.id}`} />
-                    {p.status === "active" ? (
+                    {access.update ? <RowEditButton href={`/admin/products/${p.id}`} /> : (
+                      <RowEditButton href={`/admin/products/${p.id}`}>View</RowEditButton>
+                    )}
+                    {access.update && p.status === "active" ? (
                       <button type="button" className={rowBtn} onClick={() => setPending({ row: p, action: "inactive" })}>
                         Inactive
                       </button>
-                    ) : (
+                    ) : null}
+                    {access.update && p.status !== "active" ? (
                       <button type="button" className={rowBtn} disabled={busy} onClick={() => void setStatus(p.id, "active")}>
                         Activate
                       </button>
-                    )}
-                    {p.status !== "archived" ? (
+                    ) : null}
+                    {access.delete && p.status !== "archived" ? (
                       <button type="button" className={rowBtnDanger} onClick={() => setPending({ row: p, action: "delete" })}>
                         Delete
                       </button>

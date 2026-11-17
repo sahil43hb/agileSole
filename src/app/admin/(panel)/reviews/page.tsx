@@ -1,16 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { RotateCcw, Star, X } from "lucide-react";
+import { RotateCcw, Star } from "lucide-react";
 import {
   AdminModal,
+  AdminModalBody,
+  AdminModalFooter,
+  AdminModalHeader,
   AdminPageHeader,
   AdminSearch,
   AdminTable,
   EmptyNote,
   SingleSelect,
   StatusBadge,
+  modalBtnSecondary,
 } from "@/components/admin/ui";
+import { toastFromResponse } from "@/components/ui/toast";
+import { useCan } from "@/components/admin/access";
 
 type Review = {
   _id: string;
@@ -27,6 +33,7 @@ const btn =
   "h-8 rounded-lg border border-[var(--admin-line)] bg-white px-3 text-xs font-medium text-ink hover:bg-[#f4f7f5]";
 
 export default function AdminReviewsPage() {
+  const access = useCan("reviews");
   const [rows, setRows] = useState<Review[]>([]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
@@ -61,12 +68,14 @@ export default function AdminReviewsPage() {
 
   async function setReviewStatus(id: string, next: string) {
     setBusy(true);
-    await fetch(`/api/v1/admin/reviews/${id}`, {
+    const res = await fetch(`/api/v1/admin/reviews/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: next }),
     });
     setBusy(false);
+    const result = await toastFromResponse(res, "Could not update review", next === "published" ? "Review published" : "Review updated");
+    if (!result.ok) return;
     setOpen((prev) => (prev && prev._id === id ? { ...prev, status: next } : prev));
     await load();
   }
@@ -134,15 +143,16 @@ export default function AdminReviewsPage() {
                     <button type="button" className={btn} onClick={() => setOpen(r)}>
                       View
                     </button>
-                    {r.status !== "published" ? (
+                    {access.update && r.status !== "published" ? (
                       <button type="button" className={btn} disabled={busy} onClick={() => void setReviewStatus(r._id, "published")}>
                         Publish
                       </button>
-                    ) : (
+                    ) : null}
+                    {access.update && r.status === "published" ? (
                       <button type="button" className={btn} disabled={busy} onClick={() => void setReviewStatus(r._id, "hidden")}>
                         Hide
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -154,24 +164,21 @@ export default function AdminReviewsPage() {
 
       {open ? (
         <AdminModal onClose={() => setOpen(null)}>
-          <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-[#e7ebe8] px-6 py-5">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">Review</p>
-                <h2 className="mt-1 text-lg font-semibold tracking-tight">{open.authorName}</h2>
-                <p className="mt-1 text-sm text-ink-muted">{open.productSlug} · {open.rating}/5</p>
-              </div>
-              <button type="button" onClick={() => setOpen(null)} className="flex h-9 w-9 items-center justify-center rounded-xl text-ink-muted hover:bg-[#f4f7f5]" aria-label="Close">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="space-y-4 px-6 py-5">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <AdminModalHeader
+              kicker="Review"
+              title={open.authorName}
+              description={`${open.productSlug} · ${open.rating}/5`}
+              onClose={() => setOpen(null)}
+            />
+            <AdminModalBody className="space-y-4">
               <div className="flex items-center gap-2">
                 <StatusBadge value={open.status} />
                 {open.fit ? <span className="text-xs capitalize text-ink-faint">Fit: {open.fit}</span> : null}
               </div>
               {open.title ? <p className="font-medium">{open.title}</p> : null}
               <p className="whitespace-pre-wrap rounded-2xl border border-[#e7ebe8] px-4 py-3 text-sm leading-relaxed">{open.body}</p>
+              {access.update ? (
               <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#f4f7f5] p-1">
                 {["pending", "published", "hidden"].map((s) => (
                   <button
@@ -185,12 +192,13 @@ export default function AdminReviewsPage() {
                   </button>
                 ))}
               </div>
-            </div>
-            <div className="flex justify-end border-t border-[#e7ebe8] bg-[#f7f8f7] px-6 py-4">
-              <button type="button" onClick={() => setOpen(null)} className="h-10 rounded-xl border border-[#e7ebe8] bg-white px-4 text-sm font-medium">
+              ) : null}
+            </AdminModalBody>
+            <AdminModalFooter>
+              <button type="button" onClick={() => setOpen(null)} className={modalBtnSecondary}>
                 Close
               </button>
-            </div>
+            </AdminModalFooter>
           </div>
         </AdminModal>
       ) : null}

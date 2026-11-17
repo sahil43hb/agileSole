@@ -6,6 +6,8 @@ import { AccountShell } from "@/components/storefront/account-shell";
 import { useAuth } from "@/components/storefront/auth-provider";
 import { AppSelect } from "@/components/ui/app-select";
 import { Switch } from "@/components/ui/switch";
+import { toast, toastApiError } from "@/components/ui/toast";
+import { BusyLabel } from "@/components/ui/spinner";
 
 const field =
   "mt-1.5 w-full rounded-2xl border-0 bg-[#f3f5f2] px-4 py-3 text-sm outline-none ring-1 ring-transparent transition focus:bg-white focus:ring-brand/40";
@@ -20,7 +22,8 @@ export default function ProfilePage() {
   const [locale, setLocale] = useState("en");
   const [preferredGender, setPreferredGender] = useState("");
   const [whatsappOptIn, setWhatsappOptIn] = useState(false);
-  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [extraBusy, setExtraBusy] = useState<"data" | "logout" | null>(null);
 
   useEffect(() => {
     fetch("/api/v1/me", { credentials: "same-origin" })
@@ -38,6 +41,7 @@ export default function ProfilePage() {
 
   async function save(e: FormEvent) {
     e.preventDefault();
+    setBusy(true);
     const res = await fetch("/api/v1/me", {
       method: "PATCH",
       credentials: "same-origin",
@@ -45,8 +49,13 @@ export default function ProfilePage() {
       body: JSON.stringify({ name, email, locale, preferredGender, whatsappOptIn }),
     });
     const json = await res.json();
-    setMessage(json.ok ? t("saved") : json.error?.message);
-    if (json.ok) await refresh();
+    setBusy(false);
+    if (!json.ok) {
+      toastApiError(json, "Could not save profile");
+      return;
+    }
+    toast.success(t("saved"));
+    await refresh();
   }
 
   return (
@@ -94,31 +103,46 @@ export default function ProfilePage() {
           <span className="text-sm">{t("whatsapp")}</span>
           <Switch on={whatsappOptIn} onChange={() => setWhatsappOptIn((v) => !v)} label={t("whatsapp")} />
         </div>
-        <button type="submit" className="btn-primary mt-5 h-11 rounded-full px-6">
-          {c("save")}
+        <button type="submit" disabled={busy} className="btn-primary mt-5 inline-flex h-11 items-center justify-center rounded-full px-6 disabled:opacity-60">
+          <BusyLabel loading={busy} label="Saving…">
+            {c("save")}
+          </BusyLabel>
         </button>
       </form>
-      {message ? <p className="mt-3 text-sm text-ink-muted">{message}</p> : null}
       <div className="mt-8 flex flex-wrap gap-3 text-sm">
         <button
           type="button"
-          className="text-ink-muted underline-offset-2 hover:text-ink hover:underline"
+          disabled={extraBusy !== null}
+          className="text-ink-muted underline-offset-2 hover:text-ink hover:underline disabled:opacity-60"
           onClick={async () => {
-            await fetch("/api/v1/me/data-request", { method: "POST", credentials: "same-origin" });
-            setMessage(t("dataSent"));
+            setExtraBusy("data");
+            const res = await fetch("/api/v1/me/data-request", { method: "POST", credentials: "same-origin" });
+            const json = await res.json();
+            setExtraBusy(null);
+            if (!json.ok) toastApiError(json, "Could not send request");
+            else toast.success(t("dataSent"));
           }}
         >
-          {t("dataRequest")}
+          {extraBusy === "data" ? "Sending…" : t("dataRequest")}
         </button>
         <button
           type="button"
-          className="text-ink-muted underline-offset-2 hover:text-ink hover:underline"
+          disabled={extraBusy !== null}
+          className="text-ink-muted underline-offset-2 hover:text-ink hover:underline disabled:opacity-60"
           onClick={async () => {
-            await fetch("/api/v1/auth/logout-all", { method: "POST", credentials: "same-origin" });
+            setExtraBusy("logout");
+            const res = await fetch("/api/v1/auth/logout-all", { method: "POST", credentials: "same-origin" });
+            const json = await res.json();
+            if (!json.ok) {
+              setExtraBusy(null);
+              toastApiError(json, "Could not sign out");
+              return;
+            }
+            toast.success("Signed out of all devices");
             await signOut();
           }}
         >
-          {t("signOutAll")}
+          {extraBusy === "logout" ? "Signing out…" : t("signOutAll")}
         </button>
       </div>
     </AccountShell>

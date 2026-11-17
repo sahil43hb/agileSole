@@ -2,9 +2,12 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { RotateCcw, X } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import {
   AdminModal,
+  AdminModalBody,
+  AdminModalFooter,
+  AdminModalHeader,
   AdminPageHeader,
   AdminSearch,
   AdminTable,
@@ -13,7 +16,12 @@ import {
   SingleSelect,
   StatusBadge,
   RowEditButton,
+  modalBtnPrimary,
+  modalBtnSecondary,
 } from "@/components/admin/ui";
+import { toast, toastApiError } from "@/components/ui/toast";
+import { BusyLabel } from "@/components/ui/spinner";
+import { useCan } from "@/components/admin/access";
 
 type Row = {
   sku: string;
@@ -46,6 +54,7 @@ function stockLabel(r: Row) {
 }
 
 export default function InventoryPage() {
+  const access = useCan("inventory");
   const [rows, setRows] = useState<Row[]>([]);
   const [query, setQuery] = useState("");
   const [stock, setStock] = useState("all");
@@ -110,9 +119,10 @@ export default function InventoryPage() {
     const json = await res.json();
     setBusy(false);
     if (!json.ok) {
-      setError(json.error?.message || "Could not save");
+      toastApiError(json, "Could not save");
       return false;
     }
+    toast.success("Stock updated");
     await load();
     return true;
   }
@@ -214,7 +224,7 @@ export default function InventoryPage() {
                 </td>
                 <td>
                   <div className="flex justify-end">
-                    <RowEditButton onClick={() => openEdit(r)} />
+                    {access.update ? <RowEditButton onClick={() => openEdit(r)} /> : null}
                   </div>
                 </td>
               </tr>
@@ -225,25 +235,15 @@ export default function InventoryPage() {
       )}
 
       {editing ? (
-        <AdminModal onClose={() => setEditing(null)}>
-          <form onSubmit={submitEdit} className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-[#e7ebe8] px-6 py-5">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">Stock</p>
-                <h2 className="mt-1 text-lg font-semibold tracking-tight">Edit inventory</h2>
-                <p className="mt-1 text-sm text-ink-muted">{editing.productTitle}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditing(null)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-ink-muted hover:bg-[#f4f7f5] hover:text-ink"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4 px-6 py-5">
+        <AdminModal onClose={() => setEditing(null)} size="sm">
+          <form onSubmit={submitEdit} className="flex min-h-0 flex-1 flex-col">
+            <AdminModalHeader
+              kicker="Stock"
+              title="Edit inventory"
+              description={editing.productTitle}
+              onClose={() => setEditing(null)}
+            />
+            <AdminModalBody className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-2xl bg-[#f7f8f7] px-4 py-3">
                   <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">SKU</p>
@@ -296,20 +296,17 @@ export default function InventoryPage() {
               </div>
               <p className="text-xs text-ink-faint">On-hand cannot go below reserved COD units.</p>
               {error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
-            </div>
-
-            <div className="flex items-center justify-end gap-2 border-t border-[#e7ebe8] bg-[#f7f8f7] px-6 py-4">
-              <button
-                type="button"
-                onClick={() => setEditing(null)}
-                className="h-10 rounded-xl border border-[#e7ebe8] bg-white px-4 text-sm font-medium text-ink"
-              >
+            </AdminModalBody>
+            <AdminModalFooter>
+              <button type="button" onClick={() => setEditing(null)} className={modalBtnSecondary}>
                 Cancel
               </button>
-              <button type="submit" disabled={busy} className="h-10 rounded-xl bg-brand px-5 text-sm font-medium text-white disabled:opacity-60">
-                {busy ? "Saving…" : "Save stock"}
+              <button type="submit" disabled={busy} className={modalBtnPrimary}>
+                <BusyLabel loading={busy} label="Saving…">
+                  Save stock
+                </BusyLabel>
               </button>
-            </div>
+            </AdminModalFooter>
           </form>
         </AdminModal>
       ) : null}

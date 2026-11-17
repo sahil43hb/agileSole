@@ -7,7 +7,7 @@ import { writeAudit } from "@/server/modules/admin/audit.service";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, ctx: Ctx) {
-  const gate = await requireAdminApi("customers");
+  const gate = await requireAdminApi("customers", "update");
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;

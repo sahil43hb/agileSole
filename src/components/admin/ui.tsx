@@ -5,8 +5,9 @@ import type { LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Check, ChevronDown, Pencil, Search } from "lucide-react";
+import { Check, ChevronDown, Pencil, Search, X } from "lucide-react";
 import { AppSelect } from "@/components/ui/app-select";
+import { BusyLabel, Spinner } from "@/components/ui/spinner";
 
 export const rowBtn =
   "inline-flex h-8 items-center justify-center rounded-full border border-[#e7ebe8] bg-white px-3.5 text-xs font-medium text-ink transition hover:border-brand/25 hover:bg-brand-mist hover:text-brand-dark";
@@ -99,10 +100,11 @@ export function AdminHeaderAction({
       ? "bg-brand text-white hover:bg-brand-dark"
       : "border border-[var(--admin-line)] bg-white text-ink hover:bg-[#f4f7f5]"
   }`;
-  const text = disabled && loadingLabel ? loadingLabel : label;
+  const busy = Boolean(disabled && loadingLabel);
+  const text = busy ? loadingLabel : label;
   const inner = (
     <>
-      <Icon className="h-4 w-4" />
+      {busy ? <Spinner className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
       <span className="hidden sm:inline">{text}</span>
     </>
   );
@@ -309,7 +311,31 @@ export function EmptyNote({ children }: { children: ReactNode }) {
   );
 }
 
-export function AdminModal({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+const modalWidths = {
+  sm: "sm:max-w-md",
+  md: "sm:max-w-lg",
+  lg: "sm:max-w-2xl",
+  xl: "sm:max-w-3xl",
+} as const;
+
+export const modalBtnSecondary =
+  "inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#e7ebe8] bg-white px-4 text-sm font-medium text-ink transition hover:bg-[#f4f7f5] disabled:opacity-60 sm:h-10 sm:w-auto";
+
+export const modalBtnPrimary =
+  "inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-medium text-white shadow-[0_8px_20px_rgba(31,166,74,0.22)] transition hover:bg-brand-dark disabled:opacity-60 sm:h-10 sm:w-auto";
+
+export const modalBtnDanger =
+  "inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-60 sm:h-10 sm:w-auto";
+
+export function AdminModal({
+  children,
+  onClose,
+  size = "md",
+}: {
+  children: ReactNode;
+  onClose: () => void;
+  size?: keyof typeof modalWidths;
+}) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -329,11 +355,78 @@ export function AdminModal({ children, onClose }: { children: ReactNode; onClose
   if (!ready) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      <button type="button" className="absolute inset-0 bg-ink/50" aria-label="Close" onClick={onClose} />
-      {children}
+    <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center sm:p-5">
+      <button
+        type="button"
+        className="absolute inset-0 bg-ink/45 backdrop-blur-[3px]"
+        aria-label="Close"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className={`relative z-10 flex h-[min(96dvh,100%)] w-full min-h-0 flex-col overflow-hidden rounded-t-[1.6rem] bg-white shadow-[0_-12px_60px_rgba(17,17,17,0.18)] sm:h-auto sm:max-h-[min(90dvh,880px)] sm:rounded-[1.6rem] sm:shadow-[0_24px_80px_rgba(17,17,17,0.2)] ${modalWidths[size]}`}
+      >
+        <div className="flex justify-center pt-2 sm:hidden">
+          <span className="h-1 w-10 rounded-full bg-[#d7ddd9]" />
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+      </div>
     </div>,
     document.body,
+  );
+}
+
+export function AdminModalHeader({
+  title,
+  description,
+  kicker,
+  onClose,
+  extra,
+}: {
+  title: string;
+  description?: string;
+  kicker?: string;
+  onClose: () => void;
+  extra?: ReactNode;
+}) {
+  return (
+    <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#eef1ef] px-5 pb-4 pt-2 sm:px-6 sm:pb-5 sm:pt-5">
+      <div className="min-w-0">
+        {kicker ? (
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-dark">{kicker}</p>
+        ) : null}
+        <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-ink">{title}</h2>
+        {description ? <p className="mt-1 text-sm leading-relaxed text-ink-muted">{description}</p> : null}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {extra}
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4f7f5] text-ink-muted transition hover:bg-[#e8ece8] hover:text-ink"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function AdminModalBody({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6 sm:py-5 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+export function AdminModalFooter({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-[#eef1ef] bg-[#f7f8f7] px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-end sm:px-6 sm:py-4">
+      {children}
+    </div>
   );
 }
 
@@ -358,28 +451,22 @@ export function ConfirmDialog({
 }) {
   if (!open) return null;
   return (
-    <AdminModal onClose={onCancel}>
-      <div role="dialog" aria-modal="true" className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-        <p className="mt-2 text-sm leading-relaxed text-ink-muted">{body}</p>
-        <div className="mt-6 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={busy}
-            className="btn-secondary h-10 px-4"
-          >
+    <AdminModal onClose={onCancel} size="sm">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <AdminModalHeader title={title} onClose={onCancel} />
+        <AdminModalBody>
+          <p className="text-sm leading-relaxed text-ink-muted">{body}</p>
+        </AdminModalBody>
+        <AdminModalFooter>
+          <button type="button" onClick={onCancel} disabled={busy} className={modalBtnSecondary}>
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={busy}
-            className={`h-10 px-4 ${danger ? "btn-danger" : "btn-primary"}`}
-          >
-            {busy ? "Please wait…" : confirmLabel}
+          <button type="button" onClick={onConfirm} disabled={busy} className={danger ? modalBtnDanger : modalBtnPrimary}>
+            <BusyLabel loading={busy} label="Please wait…">
+              {confirmLabel}
+            </BusyLabel>
           </button>
-        </div>
+        </AdminModalFooter>
       </div>
     </AdminModal>
   );

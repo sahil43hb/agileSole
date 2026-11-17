@@ -2,7 +2,7 @@ import { z } from "zod";
 import { connectDb } from "@/server/db/connect";
 import { Customer, Order, Review, Ticket } from "@/server/models";
 import { asDoc } from "@/server/lib/lean";
-import { normalizePkPhone } from "@/shared/phone";
+import { normalizePkPhone, pkPhoneField } from "@/shared/phone";
 import { addCartItem } from "@/server/modules/commerce/cart.service";
 import { toCustomerOrder, trackGuestOrder, customerCancel, customerReturn } from "@/server/modules/commerce/order.service";
 
@@ -18,7 +18,7 @@ const profileSchema = z.object({
 const addressSchema = z.object({
   label: z.string().optional(),
   fullName: z.string().min(2),
-  phone: z.string().min(10),
+  phone: pkPhoneField,
   province: z.string().min(2),
   city: z.string().min(2),
   area: z.string().optional(),
@@ -88,16 +88,71 @@ export async function bumpSessionEpoch(customerId: string) {
   await customer.save();
 }
 
+type AddressDoc = {
+  _id?: { toString(): string };
+  isDefault?: boolean;
+  label?: string;
+  fullName?: string;
+  phone?: string;
+  province?: string;
+  city?: string;
+  area?: string;
+  street?: string;
+  landmark?: string;
+  postalCode?: string;
+};
+
+function addressIdOf(a: AddressDoc) {
+  return a._id?.toString() || "";
+}
+
+function ensurePrimaryAddress(addresses: AddressDoc[]) {
+  if (!addresses.length) return;
+  if (!addresses.some((a) => a.isDefault)) addresses[0].isDefault = true;
+}
+
 export async function addAddress(customerId: string, raw: unknown) {
   await connectDb();
   const input = addressSchema.parse(raw);
   const phone = normalizePkPhone(input.phone);
   const customer = await Customer.findById(customerId);
   if (!customer) throw new Error("Account not found");
-  if (input.isDefault) {
+  const makePrimary = Boolean(input.isDefault) || customer.addresses.length === 0;
+  if (makePrimary) {
     for (const a of customer.addresses) a.isDefault = false;
   }
-  customer.addresses.push({ ...input, phone });
+  customer.addresses.push({
+    ...input,
+    phone,
+    label: (input.label || "Home").trim() || "Home",
+    isDefault: makePrimary,
+  });
+  await customer.save();
+  return getCustomerById(customerId);
+}
+
+export async function updateAddress(customerId: string, addressId: string, raw: unknown) {
+  await connectDb();
+  const input = addressSchema.partial().parse(raw);
+  const customer = await Customer.findById(customerId);
+  if (!customer) throw new Error("Account not found");
+  const addr = customer.addresses.find((a: AddressDoc) => addressIdOf(a) === addressId);
+  if (!addr) throw new Error("Address not found");
+  if (input.phone) addr.phone = normalizePkPhone(input.phone);
+  if (input.fullName !== undefined) addr.fullName = input.fullName;
+  if (input.label !== undefined) addr.label = input.label.trim() || addr.label;
+  if (input.province !== undefined) addr.province = input.province;
+  if (input.city !== undefined) addr.city = input.city;
+  if (input.area !== undefined) addr.area = input.area;
+  if (input.street !== undefined) addr.street = input.street;
+  if (input.landmark !== undefined) addr.landmark = input.landmark;
+  if (input.postalCode !== undefined) addr.postalCode = input.postalCode;
+  if (input.isDefault === true) {
+    for (const a of customer.addresses) a.isDefault = addressIdOf(a) === addressId;
+  } else if (input.isDefault === false) {
+    addr.isDefault = false;
+    ensurePrimaryAddress(customer.addresses);
+  }
   await customer.save();
   return getCustomerById(customerId);
 }
@@ -106,7 +161,8 @@ export async function removeAddress(customerId: string, addressId: string) {
   await connectDb();
   const customer = await Customer.findById(customerId);
   if (!customer) throw new Error("Account not found");
-  const next = customer.addresses.filter((a: { _id?: { toString(): string } }) => a._id?.toString() !== addressId);
+  const next = customer.addresses.filter((a: AddressDoc) => addressIdOf(a) !== addressId);
+  ensurePrimaryAddress(next);
   customer.addresses.splice(0, customer.addresses.length, ...next);
   await customer.save();
   return getCustomerById(customerId);

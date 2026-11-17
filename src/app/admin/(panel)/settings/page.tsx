@@ -7,6 +7,8 @@ import { AdminHeaderAction, AdminPageHeader } from "@/components/admin/ui";
 import { Switch } from "@/components/ui/switch";
 import { LOGO_SRC } from "@/components/brand/logo";
 import { notifyLogoChanged } from "@/lib/brand-icon";
+import { toast, toastApiError } from "@/components/ui/toast";
+import { useCan } from "@/components/admin/access";
 
 const PAYMENT_FLAGS = [
   { key: "cod", label: "Cash on delivery", hint: "Live now — shoppers pay when the pair arrives.", locked: true },
@@ -41,6 +43,7 @@ function Toggle({
 }
 
 export default function SettingsPage() {
+  const access = useCan("settings");
   const router = useRouter();
   const [store, setStore] = useState({
     name: "Agile Sole",
@@ -91,7 +94,7 @@ export default function SettingsPage() {
     const res = await fetch("/api/v1/admin/media", { method: "POST", body });
     const json = await res.json();
     if (!json.ok) {
-      setLogoError(json.error?.message || "Could not upload logo");
+      toastApiError(json, "Could not upload logo");
       return;
     }
     const url = json.data.url as string;
@@ -118,9 +121,9 @@ export default function SettingsPage() {
     if (json.ok) {
       notifyLogoChanged(store.logo || LOGO_SRC);
       router.refresh();
-      setSaved("Settings saved");
+      toast.success("Settings saved");
     } else {
-      setSaved(json.error?.message || "Could not save");
+      toastApiError(json, "Could not save");
     }
   }
 
@@ -130,6 +133,7 @@ export default function SettingsPage() {
         title="Store settings"
         description="Brand, contact, COD limits, and what goes live next."
         actions={
+          access.update ? (
           <AdminHeaderAction
             icon={Check}
             type="submit"
@@ -137,6 +141,7 @@ export default function SettingsPage() {
             loadingLabel="Saving…"
             disabled={busy}
           />
+          ) : undefined
         }
       />
       {saved ? <p className="rounded-xl bg-brand-mist px-3 py-2 text-sm text-brand-dark">{saved}</p> : null}

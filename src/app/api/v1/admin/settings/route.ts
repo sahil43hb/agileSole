@@ -4,7 +4,7 @@ import { getAllSettings, saveAllSettings } from "@/server/modules/admin/settings
 import { writeAudit } from "@/server/modules/admin/audit.service";
 
 export async function GET() {
-  const gate = await requireAdminApi("settings");
+  const gate = await requireAdminApi("settings", "view");
   if (gate.response) return gate.response;
   try {
     return ok(await getAllSettings());
@@ -14,7 +14,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const gate = await requireAdminApi("settings");
+  const gate = await requireAdminApi("settings", "update");
   if (gate.response) return gate.response;
   try {
     const body = await request.json();

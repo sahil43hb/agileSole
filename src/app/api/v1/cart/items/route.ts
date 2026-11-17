@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { fail, fromError, ok } from "@/server/lib/api";
+import { errorMessage, fail, fromError, ok } from "@/server/lib/api";
 import { getGuestId } from "@/server/lib/guest";
 import { addCartItem, setCartItem } from "@/server/modules/commerce/cart.service";
 
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const cart = await addCartItem(guestId, body.sku, body.qty ?? 1, body.locale || "en");
     return ok(cart);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not add";
+    const message = errorMessage(err, "Could not add");
     if (message.includes("left") || message.includes("available") || message.includes("sale")) {
       return fail("STOCK", message, 409);
     }
@@ -30,7 +30,7 @@ export async function PATCH(request: Request) {
     const guestId = await getGuestId();
     return ok(await setCartItem(guestId, body.sku, body.qty, body.locale || "en"));
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not update";
+    const message = errorMessage(err, "Could not update");
     if (message.includes("left") || message.includes("available")) {
       return fail("STOCK", message, 409);
     }

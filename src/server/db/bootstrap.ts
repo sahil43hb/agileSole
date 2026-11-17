@@ -1,6 +1,7 @@
 import { connectDb } from "./connect";
 import { hashPassword } from "../lib/password";
 import {
+  AdminNotification,
   AuditLog,
   Brand,
   Cart,
@@ -11,16 +12,20 @@ import {
   Discount,
   Faq,
   Newsletter,
+  NotificationLog,
   Order,
+  OtpChallenge,
   Product,
   Review,
+  Role,
   Setting,
   SizeChart,
   Staff,
   Ticket,
 } from "../models";
+import { allPermissions, permissionsFor } from "@/shared/admin-rbac";
 
-export const SEED_VERSION = 3;
+export const SEED_VERSION = 4;
 
 function loc(en: string, ur: string) {
   return { en, ur };
@@ -76,6 +81,10 @@ export async function seedDatabase() {
 
   await Promise.all([
     Staff.deleteMany({}),
+    Role.deleteMany({}),
+    AdminNotification.deleteMany({}),
+    NotificationLog.deleteMany({}),
+    OtpChallenge.deleteMany({}),
     Brand.deleteMany({}),
     Category.deleteMany({}),
     Collection.deleteMany({}),
@@ -94,11 +103,45 @@ export async function seedDatabase() {
     Newsletter.deleteMany({}),
   ]);
 
+  const ownerRole = await Role.create({
+    name: "Owner",
+    slug: "owner",
+    description: "Full access to every admin module",
+    isSystem: true,
+    permissions: allPermissions(),
+  });
+  const catalogRole = await Role.create({
+    name: "Catalog",
+    slug: "catalog",
+    description: "Products, stock, and taxonomy",
+    permissions: permissionsFor({
+      dashboard: ["view"],
+      products: "all",
+      inventory: "all",
+      categories: "all",
+      brands: "all",
+      collections: "all",
+      size_charts: "all",
+    }),
+  });
+  const ordersRole = await Role.create({
+    name: "Orders",
+    slug: "orders",
+    description: "Orders, customers, and tickets",
+    permissions: permissionsFor({
+      dashboard: ["view"],
+      orders: "all",
+      customers: ["view", "update"],
+      tickets: "all",
+    }),
+  });
+
   await Staff.create({
     name: "Store Owner",
     email,
     passwordHash: await hashPassword(password),
-    role: "super_admin",
+    role: "owner",
+    roleId: ownerRole._id,
     isActive: true,
   });
   await Staff.create({
@@ -106,6 +149,7 @@ export async function seedDatabase() {
     email: "peter.m@example.com",
     passwordHash: await hashPassword(staffPassword),
     role: "catalog",
+    roleId: catalogRole._id,
     isActive: true,
   });
   await Staff.create({
@@ -113,6 +157,7 @@ export async function seedDatabase() {
     email: "xavier.y@example.org",
     passwordHash: await hashPassword(staffPassword),
     role: "orders",
+    roleId: ordersRole._id,
     isActive: true,
   });
 
@@ -957,7 +1002,7 @@ export async function seedDatabase() {
     { key: "seed.version", value: SEED_VERSION },
   ]);
 
-  console.log(`Seeded admin ${email} + catalog/orders staff`);
+  console.log(`Seeded owner ${email} (role Owner) + catalog/orders staff`);
   console.log(`Products: ${created.length} with Facebook photos`);
   console.log(`Customers: ${customers.length} · Orders: ${demoOrders.length}`);
 }

@@ -8,6 +8,8 @@ import { OrderTimeline } from "@/components/storefront/order-timeline";
 import { ShippingEta } from "@/components/storefront/shipping-eta";
 import { Link } from "@/i18n/navigation";
 import { geoLabel } from "@/content/geo-pk";
+import { toastApiError } from "@/components/ui/toast";
+import { BusyLabel } from "@/components/ui/spinner";
 
 const field =
   "mt-1.5 w-full rounded-2xl border-0 bg-[#f3f5f2] px-4 py-3 text-sm outline-none ring-1 ring-transparent transition placeholder:text-ink-faint focus:bg-white focus:ring-brand/40";
@@ -31,16 +33,19 @@ export default function TrackOrderPage() {
   const [phone, setPhone] = useState("");
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   async function lookup(e: FormEvent) {
     e.preventDefault();
     setError("");
     setOrder(null);
+    setBusy(true);
     const res = await fetch(
       `/api/v1/orders/track?number=${encodeURIComponent(number)}&phone=${encodeURIComponent(phone)}&locale=${locale}`,
     );
     const json = await res.json();
-    if (!json.ok) setError(json.error?.message || t("notFound"));
+    setBusy(false);
+    if (!json.ok) toastApiError(json, t("notFound"));
     else setOrder(json.data.order);
   }
 
@@ -76,8 +81,10 @@ export default function TrackOrderPage() {
                 required
               />
             </label>
-            <button type="submit" data-testid="track-submit" className="btn-primary h-12 w-full rounded-full">
-              {t("submit")}
+            <button type="submit" data-testid="track-submit" disabled={busy} className="btn-primary inline-flex h-12 w-full items-center justify-center rounded-full disabled:opacity-60">
+              <BusyLabel loading={busy} label={t("tracking")}>
+                {t("submit")}
+              </BusyLabel>
             </button>
           </form>
           {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}

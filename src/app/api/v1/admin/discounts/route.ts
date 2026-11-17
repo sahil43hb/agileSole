@@ -4,7 +4,7 @@ import { listDiscounts, upsertDiscount } from "@/server/modules/commerce/discoun
 import { writeAudit } from "@/server/modules/admin/audit.service";
 
 export async function GET() {
-  const gate = await requireAdminApi("orders");
+  const gate = await requireAdminApi("discounts", "view");
   if (gate.response) return gate.response;
   try {
     return ok({ discounts: await listDiscounts() });
@@ -14,7 +14,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireAdminApi("orders");
+  const gate = await requireAdminApi("discounts", "create");
   if (gate.response) return gate.response;
   try {
     const discount = await upsertDiscount(await request.json());

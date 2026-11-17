@@ -7,6 +7,7 @@ import { Link } from "@/i18n/navigation";
 import type { PublicProduct } from "@/server/modules/catalog/product.service";
 import { formatPkr } from "@/shared/money";
 import { useCart } from "./cart-provider";
+import { BusyLabel } from "@/components/ui/spinner";
 
 export function QuickAddButton({
   product,
@@ -45,8 +46,10 @@ export function QuickAddButton({
         onClick={() => void start()}
         className="mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-ink text-[13px] font-medium text-paper transition hover:bg-[#222] disabled:cursor-not-allowed disabled:opacity-40"
       >
-        <ShoppingBag className="h-3.5 w-3.5" />
-        {soldOut ? c("soldOut") : busy ? c("adding") : label || c("addToBag")}
+        {busy ? null : <ShoppingBag className="h-3.5 w-3.5" />}
+        <BusyLabel loading={busy} label={c("adding")}>
+          {soldOut ? c("soldOut") : label || c("addToBag")}
+        </BusyLabel>
       </button>
       {error && !open ? <p className="mt-1.5 text-xs text-ink-muted">{error}</p> : null}
       {open ? (
@@ -122,9 +125,10 @@ function QuickAddSheet({ product, onClose }: { product: PublicProduct; onClose: 
         role="dialog"
         aria-modal="true"
         aria-label={`Add ${product.title} to bag`}
-        className="w-full max-w-md rounded-t-[1.5rem] bg-white p-5 shadow-[0_-16px_60px_rgba(17,17,17,0.18)] sm:rounded-[1.5rem] sm:p-6"
+        className="flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-[1.5rem] bg-white shadow-[0_-16px_60px_rgba(17,17,17,0.18)] sm:rounded-[1.5rem]"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 sm:px-6 sm:pt-6">
         <div className="flex items-start gap-3">
           <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-brand-mist">
             {image ? (
@@ -204,15 +208,19 @@ function QuickAddSheet({ product, onClose }: { product: PublicProduct; onClose: 
         </div>
 
         {error ? <p className="mt-3 text-sm text-ink-muted">{error}</p> : null}
-
+        </div>
+        <div className="shrink-0 border-t border-black/[0.04] px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
         <button
           type="button"
           disabled={busy}
           onClick={() => void submit()}
-          className="btn-primary mt-5 h-12 w-full rounded-full disabled:opacity-60"
+          className="btn-primary inline-flex h-12 w-full items-center justify-center rounded-full disabled:opacity-60"
         >
-          {busy ? c("adding") : c("addToBag")}
+          <BusyLabel loading={busy} label={c("adding")}>
+            {c("addToBag")}
+          </BusyLabel>
         </button>
+        </div>
       </div>
     </div>
   );

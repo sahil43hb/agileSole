@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { AdminHeaderAction, AdminPageHeader } from "@/components/admin/ui";
 import { SwitchTrack } from "@/components/ui/switch";
+import { toastFromResponse } from "@/components/ui/toast";
+import { useCan } from "@/components/admin/access";
 
 type Section = { type: string; enabled: boolean };
 
@@ -27,6 +29,7 @@ const area =
   "mt-1.5 w-full rounded-xl border border-[#e7ebe8] bg-[#f7f8f7] px-3.5 py-2.5 text-sm text-ink outline-none transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20";
 
 export default function HomepageCmsPage() {
+  const access = useCan("homepage");
   const [sections, setSections] = useState<Section[]>([]);
   const [en, setEn] = useState("");
   const [ur, setUr] = useState("");
@@ -49,24 +52,26 @@ export default function HomepageCmsPage() {
 
   async function saveAnnounce() {
     setBusy(true);
-    await fetch("/api/v1/admin/cms/announce", {
+    const res = await fetch("/api/v1/admin/cms/announce", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ en, ur }),
     });
     setBusy(false);
-    setSaved("Announcement saved");
+    const result = await toastFromResponse(res, "Could not save announcement", "Announcement saved");
+    if (result.ok) setSaved("Announcement saved");
   }
 
   async function saveSections() {
     setBusy(true);
-    await fetch("/api/v1/admin/cms/home", {
+    const res = await fetch("/api/v1/admin/cms/home", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sections }),
     });
     setBusy(false);
-    setSaved("Homepage sections saved");
+    const result = await toastFromResponse(res, "Could not save homepage", "Homepage sections saved");
+    if (result.ok) setSaved("Homepage sections saved");
   }
 
   return (
@@ -75,6 +80,7 @@ export default function HomepageCmsPage() {
         title="Homepage"
         description="Announcement bar and which blocks shoppers see first."
         actions={
+          access.update ? (
           <AdminHeaderAction
             icon={Check}
             label="Save homepage"
@@ -82,6 +88,7 @@ export default function HomepageCmsPage() {
             disabled={busy}
             onClick={() => void Promise.all([saveAnnounce(), saveSections()])}
           />
+          ) : undefined
         }
       />
       {saved ? <p className="rounded-xl bg-brand-mist px-3 py-2 text-sm text-brand-dark">{saved}</p> : null}

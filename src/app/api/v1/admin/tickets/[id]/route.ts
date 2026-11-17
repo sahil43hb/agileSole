@@ -6,7 +6,7 @@ import { getTicket, setTicketStatus } from "@/server/modules/account/account.ser
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, ctx: Ctx) {
-  const gate = await requireAdminApi("tickets");
+  const gate = await requireAdminApi("tickets", "view");
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;
@@ -17,7 +17,7 @@ export async function GET(_request: Request, ctx: Ctx) {
 }
 
 export async function PATCH(request: Request, ctx: Ctx) {
-  const gate = await requireAdminApi("tickets");
+  const gate = await requireAdminApi("tickets", "update");
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;

@@ -15,6 +15,8 @@ import { ShippingEta } from "./shipping-eta";
 import { geoLabel } from "@/content/geo-pk";
 import { useAuth } from "./auth-provider";
 import { isPkMobile, normalizePkPhone } from "@/shared/phone";
+import { toast, toastApiError } from "@/components/ui/toast";
+import { BusyLabel } from "@/components/ui/spinner";
 
 type SavedAddress = {
   fullName?: string;
@@ -110,6 +112,7 @@ export function CheckoutForm() {
   const [otpSent, setOtpSent] = useState(false);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [otpBusy, setOtpBusy] = useState(false);
 
   useEffect(() => {
     void refresh();
@@ -163,26 +166,28 @@ export function CheckoutForm() {
 
   async function sendOtp() {
     setMessage("");
+    setOtpBusy(true);
     const res = await fetch("/api/v1/auth/otp/request", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier: phone, purpose: "checkout" }),
+      body: JSON.stringify({ identifier: phone, purpose: "checkout", email }),
     });
     const json = await res.json();
+    setOtpBusy(false);
     if (!json.ok) {
-      setMessage(json.error?.message || t("otpFail"));
+      toastApiError(json, t("otpFail"));
       return;
     }
     setOtpSent(true);
     const hint = json.data?.devCode ? t("codeSentDev", { code: json.data.devCode }) : t("codeSent");
-    setMessage(hint);
+    toast.success(hint);
     if (json.data?.devCode) setOtp(String(json.data.devCode));
   }
 
   async function place(e: FormEvent) {
     e.preventDefault();
     if (!acceptTerms) {
-      setMessage(t("acceptTerms"));
+      toast.error(t("acceptTerms"));
       return;
     }
     setBusy(true);
@@ -217,7 +222,7 @@ export function CheckoutForm() {
     const json = await res.json();
     setBusy(false);
     if (!json.ok) {
-      setMessage(json.error?.message || t("placeFail"));
+      toastApiError(json, t("placeFail"));
       return;
     }
     sessionStorage.removeItem("as_checkout_idemp");
@@ -400,7 +405,7 @@ export function CheckoutForm() {
                 data-testid="checkout-terms"
                 checked={acceptTerms}
                 onChange={(e) => setAcceptTerms(e.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-[#1f8a4c]"
+                className="mt-0.5"
               />
               <span className="text-sm text-ink">
                 {t("agree")}{" "}
@@ -419,10 +424,13 @@ export function CheckoutForm() {
               <button
                 type="button"
                 data-testid="checkout-send-otp"
-                className="h-11 shrink-0 rounded-full bg-[#f3f5f2] px-5 text-sm font-medium transition hover:bg-[#e8ece8]"
+                disabled={otpBusy}
+                className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-[#f3f5f2] px-5 text-sm font-medium transition hover:bg-[#e8ece8] disabled:opacity-60"
                 onClick={() => void sendOtp()}
               >
-                {otpSent ? t("resendCode") : t("sendCode")}
+                <BusyLabel loading={otpBusy} label={t("sendingCode")}>
+                  {otpSent ? t("resendCode") : t("sendCode")}
+                </BusyLabel>
               </button>
               <input
                 value={otp}
@@ -444,8 +452,10 @@ export function CheckoutForm() {
             </p>
           ) : null}
 
-          <button type="submit" data-testid="checkout-place" disabled={busy} className="btn-primary hidden h-12 w-full rounded-full px-6 disabled:opacity-60 md:inline-flex">
-            {placeLabel}
+          <button type="submit" data-testid="checkout-place" disabled={busy} className="btn-primary hidden h-12 w-full items-center justify-center rounded-full px-6 disabled:opacity-60 md:inline-flex">
+            <BusyLabel loading={busy} label={t("placing")}>
+              {placeLabel}
+            </BusyLabel>
           </button>
         </form>
 
@@ -498,9 +508,11 @@ export function CheckoutForm() {
           type="submit"
           form="agile-checkout"
           disabled={busy}
-          className="btn-primary h-12 w-full rounded-full px-6 disabled:opacity-60"
+          className="btn-primary inline-flex h-12 w-full items-center justify-center rounded-full px-6 disabled:opacity-60"
         >
-          {placeLabel}
+          <BusyLabel loading={busy} label={t("placing")}>
+            {placeLabel}
+          </BusyLabel>
         </button>
       </div>
     </div>

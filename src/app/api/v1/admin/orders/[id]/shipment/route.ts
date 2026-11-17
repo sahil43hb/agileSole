@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { fail, fromError, ok } from "@/server/lib/api";
+import { errorMessage, fail, ok } from "@/server/lib/api";
 import { requireAdminApi } from "@/server/lib/require-admin";
 import { updateShipment } from "@/server/modules/commerce/order.service";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, ctx: Ctx) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminApi("orders", "update");
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;
@@ -19,7 +19,7 @@ export async function POST(request: Request, ctx: Ctx) {
       .parse(await request.json());
     return ok({ order: await updateShipment(id, body) });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not save";
+    const message = errorMessage(err, "Could not save");
     return fail("SHIPMENT", message, 422);
   }
 }

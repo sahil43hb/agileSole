@@ -3,6 +3,8 @@
 import { FormEvent, useState } from "react";
 import { Star } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { toast, toastApiError } from "@/components/ui/toast";
+import { BusyLabel } from "@/components/ui/spinner";
 
 const field =
   "mt-1 w-full rounded-xl border-0 bg-[#f3f5f2] px-3.5 py-2.5 text-sm outline-none ring-1 ring-transparent transition placeholder:text-ink-faint focus:bg-white focus:ring-brand/40";
@@ -31,13 +33,13 @@ export function ReviewForm({ slug, wide = false }: { slug: string; wide?: boolea
     const json = await res.json();
     setBusy(false);
     if (!json.ok) {
-      setStatus(json.error?.message || "Could not submit");
+      toastApiError(json, "Could not submit");
       return;
     }
     setTitle("");
     setBody("");
     setOk(true);
-    setStatus(t("thanks"));
+    toast.success(t("thanks"));
   }
 
   return (
@@ -131,9 +133,11 @@ export function ReviewForm({ slug, wide = false }: { slug: string; wide?: boolea
         <button
           type="submit"
           disabled={busy}
-          className={`btn-primary h-10 rounded-full px-6 text-sm disabled:opacity-60 ${wide ? "min-w-[10rem]" : "w-full"}`}
+          className={`btn-primary inline-flex h-10 items-center justify-center rounded-full px-6 text-sm disabled:opacity-60 ${wide ? "min-w-[10rem]" : "w-full"}`}
         >
-          {busy ? t("sending") : t("submit")}
+          <BusyLabel loading={busy} label={t("sending")}>
+            {t("submit")}
+          </BusyLabel>
         </button>
         {status ? <p className={`text-sm ${ok ? "text-brand-dark" : "text-red-600"}`}>{status}</p> : null}
       </div>

@@ -1,9 +1,15 @@
-import { fail, fromError, ok } from "@/server/lib/api";
-import { requireAdminApi } from "@/server/lib/require-admin";
+import { errorMessage, fail, ok } from "@/server/lib/api";
+import { requireAdminAny } from "@/server/lib/require-admin";
 import { saveUpload } from "@/server/modules/catalog/media.service";
 
 export async function POST(request: Request) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminAny([
+    ["products", "update"],
+    ["products", "create"],
+    ["settings", "update"],
+    ["homepage", "update"],
+    ["brands", "update"],
+  ]);
   if (gate.response) return gate.response;
   try {
     const form = await request.formData();
@@ -11,7 +17,7 @@ export async function POST(request: Request) {
     if (!(file instanceof File)) return fail("VALIDATION", "Choose an image file", 422);
     return ok(await saveUpload(file));
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Upload failed";
+    const message = errorMessage(err, "Upload failed");
     return fail("UPLOAD", message, 422);
   }
 }

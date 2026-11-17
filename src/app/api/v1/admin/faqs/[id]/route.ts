@@ -5,7 +5,7 @@ import { deleteFaq, upsertFaq } from "@/server/modules/cms/cms.service";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, ctx: Ctx) {
-  const gate = await requireAdminApi("faqs");
+  const gate = await requireAdminApi("faqs", "update");
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;
@@ -16,7 +16,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
 }
 
 export async function DELETE(_: Request, ctx: Ctx) {
-  const gate = await requireAdminApi("faqs");
+  const gate = await requireAdminApi("faqs", "delete");
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;

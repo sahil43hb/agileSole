@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { BusyLabel } from "@/components/ui/spinner";
 
 const variants = {
   primary:
@@ -24,20 +25,29 @@ export function Button({
   className = "",
   children,
   type = "button",
+  loading,
+  loadingLabel,
+  disabled,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: keyof typeof variants;
   size?: keyof typeof sizes;
   block?: boolean;
   children: ReactNode;
+  loading?: boolean;
+  loadingLabel?: string;
 }) {
   return (
     <button
       type={type}
-      className={`${variants[variant]} ${sizes[size]} ${block ? "w-full" : ""} ${className}`}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      className={`inline-flex items-center justify-center gap-2 ${variants[variant]} ${sizes[size]} ${block ? "w-full" : ""} disabled:opacity-60 ${className}`}
       {...props}
     >
-      {children}
+      <BusyLabel loading={loading} label={loadingLabel}>
+        {children}
+      </BusyLabel>
     </button>
   );
 }

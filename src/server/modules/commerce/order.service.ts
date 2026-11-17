@@ -1,10 +1,10 @@
 import { connectDb } from "@/server/db/connect";
 import { Cart, Customer, Order, Product, Ticket } from "@/server/models";
-import { bumpDiscountUse } from "./discount.service";
+import { bumpDiscountUse, quoteDiscount } from "./discount.service";
 import { nextOrderNumber } from "@/server/models/counter";
 import { asDoc } from "@/server/lib/lean";
 import { GEO_PK, SHIPPING_DEFAULT } from "@/content/geo-pk";
-import { normalizePkPhone } from "@/shared/phone";
+import { normalizePkPhone, pkPhoneField } from "@/shared/phone";
 import { consumeCheckoutOtp } from "@/server/modules/auth/customer-otp.service";
 import { getCart, hydrateSku, clearCart } from "./cart.service";
 import type { OrderStatus } from "@/shared/constants";
@@ -13,7 +13,7 @@ import { z } from "zod";
 
 const addressSchema = z.object({
   fullName: z.string().min(2),
-  phone: z.string().min(10),
+  phone: pkPhoneField,
   altPhone: z.string().optional(),
   country: z.string().default("PK"),
   province: z.string().min(2),
@@ -224,26 +224,43 @@ export async function placeOrder(guestId: string, raw: unknown, opts?: { skipOtp
   return publicOrder;
 }
 
+const lineInput = z.object({ sku: z.string().min(1), qty: z.number().int().min(1) });
+
+function mergeLines(lines: { sku: string; qty: number }[]) {
+  const merged = new Map<string, number>();
+  for (const line of lines) {
+    merged.set(line.sku, (merged.get(line.sku) || 0) + line.qty);
+  }
+  return [...merged.entries()].map(([sku, qty]) => ({ sku, qty }));
+}
+
 export async function placeManualOrder(staffId: string, raw: unknown) {
   await connectDb();
   const input = z
     .object({
       fullName: z.string().min(2),
-      phone: z.string().min(10),
+      phone: pkPhoneField,
       province: z.string().min(2),
       city: z.string().min(2),
       street: z.string().min(3),
-      sku: z.string().min(1),
-      qty: z.number().int().min(1),
+      sku: z.string().min(1).optional(),
+      qty: z.number().int().min(1).optional(),
+      items: z.array(lineInput).optional(),
       notes: z.string().optional(),
       channel: z.enum(["admin_manual", "facebook"]).default("admin_manual"),
     })
     .parse(raw);
+  const lines = mergeLines(
+    input.items?.length ? input.items : input.sku ? [{ sku: input.sku, qty: input.qty || 1 }] : [],
+  );
+  if (!lines.length) throw new Error("Add at least one pair");
   const phone = normalizePkPhone(input.phone);
   const guestId = `manual-${staffId}`;
   await Cart.deleteMany({ guestId });
   const { setCartItem } = await import("./cart.service");
-  await setCartItem(guestId, input.sku, input.qty, "en");
+  for (const line of lines) {
+    await setCartItem(guestId, line.sku, line.qty, "en");
+  }
   return placeOrder(
     guestId,
     {
@@ -261,6 +278,128 @@ export async function placeManualOrder(staffId: string, raw: unknown) {
     },
     { skipOtp: true, channel: input.channel, actorId: staffId },
   );
+}
+
+export const EDITABLE_ITEM_STATUSES = ["pending_confirmation", "confirmed", "unreachable", "on_hold"] as const;
+
+async function recalcOrderAmounts(subtotal: number, discountCode: string, fallbackDiscount: number) {
+  let shipping = subtotal >= SHIPPING_DEFAULT.freeOver || subtotal === 0 ? 0 : SHIPPING_DEFAULT.fee;
+  let discount = Math.min(Math.max(0, fallbackDiscount || 0), subtotal);
+  if (discountCode && subtotal > 0) {
+    try {
+      const quote = await quoteDiscount(discountCode, subtotal, shipping);
+      discount = quote.discount;
+      shipping = quote.shipping === 0 || quote.type === "free_shipping" ? 0 : shipping;
+    } catch {
+      discount = Math.min(Math.max(0, fallbackDiscount || 0), subtotal);
+    }
+  }
+  return {
+    subtotal,
+    shipping,
+    discount,
+    tax: 0,
+    total: Math.max(0, subtotal - discount) + shipping,
+    currency: "PKR" as const,
+  };
+}
+
+export async function updateOrderItems(id: string, raw: unknown, staffId: string) {
+  await connectDb();
+  const input = z.object({ items: z.array(lineInput).min(1, "Keep at least one pair, or cancel the order") }).parse(raw);
+  const lines = mergeLines(input.items);
+
+  const order = await Order.findById(id);
+  if (!order) throw new Error("Order not found");
+  if (!(EDITABLE_ITEM_STATUSES as readonly string[]).includes(order.status)) {
+    throw new Error("Items can only be changed before packing");
+  }
+  if (order.stockCommitted) {
+    throw new Error("Stock is already packed. Change items before packing.");
+  }
+  if (order.payment?.status === "paid") {
+    throw new Error("COD is already collected. Reverse collection before changing items.");
+  }
+
+  const oldQty = new Map<string, number>(
+    order.items.map((item: { sku?: string; qty?: number }) => [String(item.sku), Number(item.qty || 0)]),
+  );
+  const allSkus = new Set([...oldQty.keys(), ...lines.map((l) => l.sku)]);
+
+  for (const sku of allSkus) {
+    const prev = oldQty.get(sku) || 0;
+    const next = lines.find((l) => l.sku === sku)?.qty || 0;
+    const extra = next - prev;
+    if (extra <= 0) continue;
+    const live = await hydrateSku(sku);
+    if (!live) throw new Error(`SKU ${sku} not found`);
+    if (live.available < extra) {
+      throw new Error(`Only ${live.available} extra left for ${live.title}`);
+    }
+  }
+
+  for (const sku of allSkus) {
+    const prev = oldQty.get(sku) || 0;
+    const next = lines.find((l) => l.sku === sku)?.qty || 0;
+    if (next > prev) await reserveSku(sku, next - prev);
+    else if (next < prev) await releaseSku(sku, prev - next);
+  }
+
+  const newItems = [];
+  for (const line of lines) {
+    const live = await hydrateSku(line.sku);
+    if (!live) throw new Error(`SKU ${line.sku} not found`);
+    const existing = order.items.find((item: { sku?: string }) => item.sku === line.sku);
+    newItems.push({
+      sku: line.sku,
+      slug: live.slug,
+      title: existing?.title || live.title,
+      color: existing?.color || live.color,
+      sizeEu: existing?.sizeEu || live.sizeEu,
+      qty: line.qty,
+      price: existing?.price ?? live.price,
+      cost: existing?.cost ?? live.cost ?? 0,
+      image: existing?.image || live.image,
+    });
+  }
+
+  const subtotal = newItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const amounts = await recalcOrderAmounts(subtotal, order.discountCode || "", order.amounts?.discount || 0);
+
+  order.set("items", newItems);
+  order.amounts.subtotal = amounts.subtotal;
+  order.amounts.shipping = amounts.shipping;
+  order.amounts.discount = amounts.discount;
+  order.amounts.tax = amounts.tax;
+  order.amounts.total = amounts.total;
+  if (order.shippingMethod) order.shippingMethod.fee = amounts.shipping;
+  if (order.payment?.status !== "paid") order.payment.collectAmount = amounts.total;
+
+  order.events.push({
+    from: order.status,
+    to: order.status,
+    actorType: "staff",
+    actorId: staffId,
+    note: `Items updated (${newItems.map((i) => `${i.sku}×${i.qty}`).join(", ")})`,
+    customerVisible: false,
+    at: new Date(),
+  });
+  await order.save();
+
+  try {
+    const { writeAudit } = await import("@/server/modules/admin/audit.service");
+    await writeAudit({
+      actorId: staffId,
+      action: "order.items",
+      entity: "order",
+      entityId: String(order._id),
+      note: order.events[order.events.length - 1]?.note,
+    });
+  } catch (err) {
+    console.error(err);
+  }
+
+  return toPublic(order.toObject());
 }
 
 function toPublic(doc: Record<string, unknown> | object) {

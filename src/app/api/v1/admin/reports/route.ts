@@ -4,7 +4,7 @@ import { requireAdminApi } from "@/server/lib/require-admin";
 import { reportPayload, toCsv } from "@/server/modules/admin/reports.service";
 
 export async function GET(request: Request) {
-  const gate = await requireAdminApi("reports");
+  const gate = await requireAdminApi("reports", "view");
   if (gate.response) return gate.response;
   try {
     const url = new URL(request.url);

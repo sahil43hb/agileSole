@@ -12,6 +12,8 @@ import { CUSTOMER_CANCEL_STATUSES, CUSTOMER_RETURN_STATUSES, statusLabel } from 
 import { useCart } from "@/components/storefront/cart-provider";
 import { ShippingEta } from "@/components/storefront/shipping-eta";
 import { geoLabel } from "@/content/geo-pk";
+import { toast, toastApiError } from "@/components/ui/toast";
+import { BusyLabel } from "@/components/ui/spinner";
 
 const field =
   "mt-1.5 w-full rounded-2xl border-0 bg-[#f3f5f2] px-4 py-3 text-sm outline-none ring-1 ring-transparent transition placeholder:text-ink-faint focus:bg-white focus:ring-brand/40";
@@ -38,6 +40,7 @@ export default function AccountOrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [message, setMessage] = useState("");
   const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState<"cancel" | "return" | "ticket" | null>(null);
 
   async function load() {
     const res = await fetch(`/api/v1/me/orders/${params.id}?locale=${locale}`, { credentials: "same-origin" });
@@ -52,6 +55,7 @@ export default function AccountOrderDetailPage() {
 
   async function act(path: string) {
     setMessage("");
+    setBusy(path === "return" ? "return" : "cancel");
     const res = await fetch(`/api/v1/me/orders/${params.id}/${path}`, {
       method: "POST",
       credentials: "same-origin",
@@ -59,8 +63,10 @@ export default function AccountOrderDetailPage() {
       body: JSON.stringify({ reason }),
     });
     const json = await res.json();
-    if (!json.ok) setMessage(json.error?.message || "Could not update");
+    setBusy(null);
+    if (!json.ok) toastApiError(json, "Could not update");
     else {
+      toast.success(path === "reorder" ? "Added to bag" : path === "return" ? "Return requested" : "Order updated");
       if (json.data.order) setOrder(json.data.order as Order);
       if (path === "reorder") {
         await refresh();
@@ -182,19 +188,25 @@ export default function AccountOrderDetailPage() {
                 {canCancel ? (
                   <button
                     type="button"
-                    className="h-11 rounded-full px-5 text-sm font-medium ring-1 ring-black/[0.08] hover:bg-[#f3f5f2]"
+                    disabled={busy !== null}
+                    className="inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-medium ring-1 ring-black/[0.08] hover:bg-[#f3f5f2] disabled:opacity-60"
                     onClick={() => void act("cancel")}
                   >
-                    {t("cancelOrder")}
+                    <BusyLabel loading={busy === "cancel"} label="Updating…">
+                      {t("cancelOrder")}
+                    </BusyLabel>
                   </button>
                 ) : null}
                 {canReturn ? (
                   <button
                     type="button"
-                    className="h-11 rounded-full px-5 text-sm font-medium ring-1 ring-black/[0.08] hover:bg-[#f3f5f2]"
+                    disabled={busy !== null}
+                    className="inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-medium ring-1 ring-black/[0.08] hover:bg-[#f3f5f2] disabled:opacity-60"
                     onClick={() => void act("return")}
                   >
-                    {t("requestReturn")}
+                    <BusyLabel loading={busy === "return"} label="Updating…">
+                      {t("requestReturn")}
+                    </BusyLabel>
                   </button>
                 ) : null}
               </div>
@@ -209,6 +221,7 @@ export default function AccountOrderDetailPage() {
             e.preventDefault();
             const form = e.currentTarget;
             const body = new FormData(form);
+            setBusy("ticket");
             const res = await fetch("/api/v1/me/tickets", {
               method: "POST",
               credentials: "same-origin",
@@ -220,16 +233,21 @@ export default function AccountOrderDetailPage() {
               }),
             });
             const json = await res.json();
-            setMessage(json.ok ? t("messageSent") : json.error?.message);
-            form.reset();
+            setBusy(null);
+            if (json.ok) {
+              toast.success(t("messageSent"));
+              form.reset();
+            } else toastApiError(json, "Could not send");
           }}
         >
           <label className="flex flex-1 flex-col text-xs font-medium text-ink-muted">
             {t("messageShop")}
             <textarea name="ticket" required className={`${field} min-h-[6.5rem] flex-1 resize-y`} rows={3} />
           </label>
-          <button type="submit" className="btn-primary mt-3 h-11 w-fit rounded-full px-6">
-            {c("send")}
+          <button type="submit" disabled={busy !== null} className="btn-primary mt-3 inline-flex h-11 w-fit items-center justify-center rounded-full px-6 disabled:opacity-60">
+            <BusyLabel loading={busy === "ticket"} label="Sending…">
+              {c("send")}
+            </BusyLabel>
           </button>
         </form>
       </div>

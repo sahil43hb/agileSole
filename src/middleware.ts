@@ -36,7 +36,9 @@ export default function middleware(request: NextRequest) {
       url.search = "";
       return NextResponse.redirect(url);
     }
-    return NextResponse.next();
+    const res = NextResponse.next();
+    res.headers.set("x-admin-path", pathname);
+    return res;
   }
 
   return intlMiddleware(request);

@@ -1,3 +1,4 @@
+import { errorMessage } from "@/shared/api-error";
 import { connectDb } from "@/server/db/connect";
 import { Brand, Category, Product } from "@/server/models";
 import { slugify } from "@/shared/money";
@@ -109,7 +110,7 @@ export async function importProductsCsv(text: string) {
         created += 1;
       }
     } catch (err) {
-      errors.push(`${slug}: ${err instanceof Error ? err.message : "failed"}`);
+      errors.push(`${slug}: ${errorMessage(err, "failed")}`);
     }
   }
 

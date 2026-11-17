@@ -1,4 +1,4 @@
-import { fail, fromError, ok } from "@/server/lib/api";
+import { errorMessage, fail, fromError, ok } from "@/server/lib/api";
 import { trackGuestOrder } from "@/server/modules/commerce/order.service";
 import { clientKey, rateLimit } from "@/server/lib/rate-limit";
 
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     if (!order) return fail("NOT_FOUND", "No order matches that number and phone", 404);
     return ok({ order });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not track";
+    const message = errorMessage(err, "Could not track");
     if (message.includes("mobile") || message.includes("Pakistan")) {
       return fail("VALIDATION", message, 422);
     }

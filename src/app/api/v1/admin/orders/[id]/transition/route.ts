@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { fail, fromError, ok } from "@/server/lib/api";
+import { errorMessage, fail, fromError, ok } from "@/server/lib/api";
 import { requireAdminApi } from "@/server/lib/require-admin";
 import { transitionOrder } from "@/server/modules/commerce/order.service";
 import { ORDER_STATUSES } from "@/shared/constants";
@@ -7,7 +7,7 @@ import { ORDER_STATUSES } from "@/shared/constants";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, ctx: Ctx) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminApi("orders", "update");
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;
@@ -20,7 +20,7 @@ export async function POST(request: Request, ctx: Ctx) {
     const order = await transitionOrder(id, body.to, gate.staff!.id, body.note);
     return ok({ order });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not update";
+    const message = errorMessage(err, "Could not update");
     if (
       message.includes("Cannot") ||
       message.includes("not found") ||

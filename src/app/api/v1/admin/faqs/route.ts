@@ -3,7 +3,7 @@ import { requireAdminApi } from "@/server/lib/require-admin";
 import { listAdminFaqs, upsertFaq } from "@/server/modules/cms/cms.service";
 
 export async function GET() {
-  const gate = await requireAdminApi("faqs");
+  const gate = await requireAdminApi("faqs", "view");
   if (gate.response) return gate.response;
   try {
     return ok({ faqs: await listAdminFaqs() });
@@ -13,7 +13,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireAdminApi("faqs");
+  const gate = await requireAdminApi("faqs", "create");
   if (gate.response) return gate.response;
   try {
     return ok({ faq: await upsertFaq(await request.json()) }, 201);

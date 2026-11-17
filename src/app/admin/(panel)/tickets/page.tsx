@@ -2,16 +2,22 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, RotateCcw, X } from "lucide-react";
+import { CalendarDays, RotateCcw } from "lucide-react";
 import {
   AdminModal,
+  AdminModalBody,
+  AdminModalFooter,
+  AdminModalHeader,
   AdminPageHeader,
   AdminTable,
   EmptyNote,
   StatusBadge,
   formatAdminDate,
+  modalBtnSecondary,
 } from "@/components/admin/ui";
+import { toastFromResponse } from "@/components/ui/toast";
 import { AppSelect } from "@/components/ui/app-select";
+import { useCan } from "@/components/admin/access";
 
 type Ticket = {
   _id: string;
@@ -36,6 +42,7 @@ function localYmd(iso: string) {
 }
 
 export default function AdminTicketsPage() {
+  const access = useCan("tickets");
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [status, setStatus] = useState("");
   const [date, setDate] = useState("");
@@ -80,12 +87,14 @@ export default function AdminTicketsPage() {
 
   async function setTicketStatus(id: string, next: string) {
     setBusy(true);
-    await fetch(`/api/v1/admin/tickets/${id}`, {
+    const res = await fetch(`/api/v1/admin/tickets/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: next }),
     });
     setBusy(false);
+    const result = await toastFromResponse(res, "Could not update ticket", "Ticket updated");
+    if (!result.ok) return;
     setTickets((prev) => prev.map((x) => (x._id === id ? { ...x, status: next } : x)));
     setOpen((prev) => (prev && prev._id === id ? { ...prev, status: next } : prev));
   }
@@ -169,6 +178,7 @@ export default function AdminTicketsPage() {
                   )}
                 </td>
                 <td onClick={(e) => e.stopPropagation()}>
+                  {access.update ? (
                   <AppSelect
                     size="sm"
                     value={t.status}
@@ -179,6 +189,9 @@ export default function AdminTicketsPage() {
                       { value: "closed", label: "Closed" },
                     ]}
                   />
+                  ) : (
+                    <StatusBadge value={t.status} />
+                  )}
                 </td>
                 <td className="max-w-xs truncate text-ink-muted">{t.reason}</td>
                 <td onClick={(e) => e.stopPropagation()}>
@@ -199,27 +212,15 @@ export default function AdminTicketsPage() {
 
       {open ? (
         <AdminModal onClose={() => setOpen(null)}>
-          <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-[#e7ebe8] px-6 py-5">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">Ticket</p>
-                <h2 className="mt-1 text-lg font-semibold capitalize tracking-tight">{open.type.replaceAll("_", " ")}</h2>
-                <p className="mt-1 text-sm text-ink-muted">{formatAdminDate(open.createdAt)}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <StatusBadge value={open.status} />
-                <button
-                  type="button"
-                  onClick={() => setOpen(null)}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl text-ink-muted hover:bg-[#f4f7f5] hover:text-ink"
-                  aria-label="Close"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-4 px-6 py-5">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <AdminModalHeader
+              kicker="Ticket"
+              title={open.type.replaceAll("_", " ")}
+              description={formatAdminDate(open.createdAt)}
+              onClose={() => setOpen(null)}
+              extra={<StatusBadge value={open.status} />}
+            />
+            <AdminModalBody className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl bg-[#f7f8f7] px-4 py-3">
                   <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint">Order</p>
@@ -258,6 +259,7 @@ export default function AdminTicketsPage() {
                 </p>
               </div>
 
+              {access.update ? (
               <div>
                 <p className="mb-1.5 text-[13px] font-medium text-ink-muted">Status</p>
                 <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#f4f7f5] p-1">
@@ -276,17 +278,13 @@ export default function AdminTicketsPage() {
                   ))}
                 </div>
               </div>
-            </div>
-
-            <div className="flex items-center justify-end border-t border-[#e7ebe8] bg-[#f7f8f7] px-6 py-4">
-              <button
-                type="button"
-                onClick={() => setOpen(null)}
-                className="h-10 rounded-xl border border-[#e7ebe8] bg-white px-4 text-sm font-medium text-ink"
-              >
+              ) : null}
+            </AdminModalBody>
+            <AdminModalFooter>
+              <button type="button" onClick={() => setOpen(null)} className={modalBtnSecondary}>
                 Close
               </button>
-            </div>
+            </AdminModalFooter>
           </div>
         </AdminModal>
       ) : null}

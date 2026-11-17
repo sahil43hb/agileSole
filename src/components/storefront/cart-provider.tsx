@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocale } from "next-intl";
 import { trackEvent } from "@/lib/analytics";
+import { toastApiError } from "@/components/ui/toast";
+import { apiErrorMessage } from "@/shared/api-error";
 
 export type CartLine = {
   sku: string;
@@ -102,7 +104,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ sku, qty, locale }),
       });
       const json = await res.json();
-      if (!json.ok) return json.error?.message || "Could not add to bag";
+      if (!json.ok) {
+        toastApiError(json, "Could not add to bag");
+        return apiErrorMessage(json, "Could not add to bag");
+      }
       setCart(json.data as CartPayload);
       setDrawerOpen(true);
       trackEvent("add_to_cart", { currency: "PKR", value: (json.data as CartPayload).subtotal });
@@ -120,7 +125,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ sku, qty, locale }),
       });
       const json = await res.json();
-      if (!json.ok) return json.error?.message || "Could not update bag";
+      if (!json.ok) {
+        toastApiError(json, "Could not update bag");
+        return apiErrorMessage(json, "Could not update bag");
+      }
       setCart(json.data as CartPayload);
       return null;
     },
@@ -147,7 +155,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ code, locale }),
       });
       const json = await res.json();
-      if (!json.ok) return json.error?.message || "Could not apply code";
+      if (!json.ok) {
+        toastApiError(json, "Could not apply code");
+        return apiErrorMessage(json, "Could not apply code");
+      }
       setCart(json.data as CartPayload);
       return null;
     },

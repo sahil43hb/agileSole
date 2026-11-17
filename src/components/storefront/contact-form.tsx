@@ -2,6 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { useTranslations } from "next-intl";
+import { toast, toastApiError } from "@/components/ui/toast";
+import { BusyLabel } from "@/components/ui/spinner";
 
 const field =
   "mt-1.5 w-full rounded-2xl border-0 bg-[#f3f5f2] px-4 py-3 text-sm outline-none ring-1 ring-transparent transition placeholder:text-ink-faint focus:bg-white focus:ring-brand/40";
@@ -29,14 +31,14 @@ export function ContactForm() {
     const json = await res.json();
     setBusy(false);
     if (!json.ok) {
-      setStatus(json.error?.message || t("fail"));
+      toastApiError(json, t("fail"));
       return;
     }
     setName("");
     setContact("");
     setMessage("");
     setOk(true);
-    setStatus(t("sent"));
+    toast.success(t("sent"));
   }
 
   return (
@@ -61,8 +63,10 @@ export function ContactForm() {
           rows={4}
         />
       </label>
-      <button type="submit" disabled={busy} className="btn-primary h-12 w-full rounded-full disabled:opacity-60">
-        {busy ? t("sending") : c("send")}
+      <button type="submit" disabled={busy} className="btn-primary inline-flex h-12 w-full items-center justify-center rounded-full disabled:opacity-60">
+        <BusyLabel loading={busy} label={t("sending")}>
+          {c("send")}
+        </BusyLabel>
       </button>
       {status ? <p className={`text-sm ${ok ? "text-brand-dark" : "text-red-600"}`}>{status}</p> : null}
     </form>

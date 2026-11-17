@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/storefront/auth-provider";
 import { Link } from "@/i18n/navigation";
+import { toast, toastApiError } from "@/components/ui/toast";
+import { BusyLabel } from "@/components/ui/spinner";
 
 export default function AccountLoginPage() {
   const t = useTranslations("account");
@@ -13,7 +15,7 @@ export default function AccountLoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
-  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (customer) router.replace("/account");
@@ -21,23 +23,34 @@ export default function AccountLoginPage() {
 
   async function send(e: FormEvent) {
     e.preventDefault();
-    setMessage("");
+    if (identifier.trim().length < 5) {
+      toast.error("Enter a valid phone or email");
+      return;
+    }
+    setBusy(true);
     const res = await fetch("/api/v1/auth/otp/request", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identifier, purpose: "login" }),
     });
     const json = await res.json();
+    setBusy(false);
     if (!json.ok) {
-      setMessage(json.error?.message || "Could not send code");
+      toastApiError(json, "Could not send the code");
       return;
     }
     setSent(true);
-    setMessage(t("devHint"));
+    toast.success("We sent a 6-digit code");
+    if (json.data?.devCode) toast.info(t("devHint"));
   }
 
   async function verify(e: FormEvent) {
     e.preventDefault();
+    if (!/^\d{6}$/.test(code.trim())) {
+      toast.error("Enter the 6-digit code");
+      return;
+    }
+    setBusy(true);
     const res = await fetch("/api/v1/auth/otp/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -45,15 +58,17 @@ export default function AccountLoginPage() {
     });
     const json = await res.json();
     if (!json.ok) {
-      setMessage(json.error?.message || "Invalid code");
+      setBusy(false);
+      toastApiError(json, "That code is incorrect");
       return;
     }
+    toast.success("Signed in");
     await refresh();
     router.push("/account");
   }
 
   const field =
-    "mt-1.5 w-full rounded-2xl border-0 bg-[#f3f5f2] px-4 py-3 text-sm outline-none ring-1 ring-transparent transition placeholder:text-ink-faint focus:bg-white focus:ring-brand/40";
+    "mt-1.5 w-full rounded-2xl border-0 bg-[#f3f5f2] px-4 py-3 text-sm outline-none ring-1 ring-transparent transition placeholder:text-ink-faint focus:bg-white focus:ring-brand/40 disabled:opacity-70";
 
   return (
     <div className="bg-[#f6f7f5]">
@@ -71,6 +86,10 @@ export default function AccountLoginPage() {
                 dir="auto"
                 className={field}
                 required
+                minLength={5}
+                placeholder="03XX XXXXXXX or email"
+                name="identifier"
+                disabled={busy}
               />
             </label>
             {sent ? (
@@ -78,19 +97,29 @@ export default function AccountLoginPage() {
                 {t("code")}
                 <input
                   value={code}
-                  onChange={(e) => setCode(e.target.value)}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   inputMode="numeric"
                   maxLength={6}
+                  minLength={6}
+                  pattern="\d{6}"
+                  name="code"
+                  title="Enter the 6-digit code"
                   className={`${field} text-center text-lg tracking-[0.45em]`}
                   required
+                  disabled={busy}
                 />
               </label>
             ) : null}
-            <button type="submit" className="btn-primary mt-2 h-12 w-full rounded-full">
-              {sent ? t("verify") : t("sendCode")}
+            <button
+              type="submit"
+              disabled={busy}
+              className="btn-primary mt-2 inline-flex h-12 w-full items-center justify-center rounded-full disabled:opacity-60"
+            >
+              <BusyLabel loading={busy} label={sent ? t("verifying") : t("sendingCode")}>
+                {sent ? t("verify") : t("sendCode")}
+              </BusyLabel>
             </button>
           </form>
-          {message ? <p className="mt-4 text-sm text-ink-muted">{message}</p> : null}
         </div>
         <p className="mt-6 text-center text-sm text-ink-muted">
           {t("guest")}{" "}

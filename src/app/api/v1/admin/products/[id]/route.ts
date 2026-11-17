@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { fail, fromError, ok } from "@/server/lib/api";
+import { errorMessage, fail, fromError, ok } from "@/server/lib/api";
 import { requireAdminApi } from "@/server/lib/require-admin";
 import {
   deleteProduct,
@@ -11,7 +11,7 @@ import {
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_: Request, ctx: Ctx) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminApi("products", "view");
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;
@@ -24,7 +24,7 @@ export async function GET(_: Request, ctx: Ctx) {
 }
 
 export async function PATCH(request: Request, ctx: Ctx) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminApi("products", "update");
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;
@@ -36,7 +36,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
     const product = await updateProduct(id, body);
     return ok({ product });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not update";
+    const message = errorMessage(err, "Could not update");
     if (message.includes("already") || message.includes("not found") || message.includes("SKU")) {
       return fail("VALIDATION", message, 422);
     }
@@ -45,7 +45,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
 }
 
 export async function DELETE(_: Request, ctx: Ctx) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminApi("products", "delete");
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;

@@ -3,7 +3,7 @@ import { requireAdminApi } from "@/server/lib/require-admin";
 import { listCustomers } from "@/server/modules/admin/customers.service";
 
 export async function GET() {
-  const gate = await requireAdminApi("customers");
+  const gate = await requireAdminApi("customers", "view");
   if (gate.response) return gate.response;
   try {
     return ok({ customers: await listCustomers() });

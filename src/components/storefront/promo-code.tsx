@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useCart } from "./cart-provider";
 import { formatPkr } from "@/shared/money";
+import { BusyLabel } from "@/components/ui/spinner";
 
 export function PromoCode() {
   const t = useTranslations("cart");
@@ -53,8 +54,10 @@ export function PromoCode() {
             placeholder={t("promo")}
             className="h-11 min-w-0 flex-1 rounded-full border-0 bg-[#f3f5f2] px-4 text-sm outline-none ring-1 ring-transparent placeholder:text-ink-faint focus:bg-white focus:ring-brand/40"
           />
-          <button type="submit" disabled={busy || !code} className="btn-primary h-11 rounded-full px-4 text-sm disabled:opacity-50">
-            {t("apply")}
+          <button type="submit" disabled={busy || !code} className="btn-primary inline-flex h-11 items-center justify-center rounded-full px-4 text-sm disabled:opacity-50">
+            <BusyLabel loading={busy} label={t("applying")}>
+              {t("apply")}
+            </BusyLabel>
           </button>
         </form>
       )}

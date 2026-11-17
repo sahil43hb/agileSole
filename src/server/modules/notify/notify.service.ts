@@ -3,6 +3,8 @@ import { NotificationLog } from "@/server/models";
 import { statusLabel } from "@/shared/order-copy";
 import { formatPkr } from "@/shared/money";
 import { getPublicSettings } from "@/server/modules/admin/settings.service";
+import { sendEmail, shopInbox } from "@/server/lib/mailer";
+import { orderCustomerEmail, shopNewOrderEmail } from "@/server/lib/email-templates";
 
 type OrderLike = {
   number?: string;
@@ -76,9 +78,17 @@ export async function notifyOrder(order: OrderLike, templateKey?: string) {
   const sms = tpl.sms(order);
   const email = (order.email || "").trim();
   const phone = order.shippingAddress?.phone || "";
+  const amountLabel = formatPkr(order.payment?.collectAmount || order.amounts?.total || 0);
+  const htmlMail = orderCustomerEmail({
+    store,
+    order,
+    kind: key,
+    statusLabel: statusLabel(order.status || "", order.locale),
+    amountLabel,
+  });
 
   if (email) {
-    console.info(`[email:${key}] ${email}\n${subject}\n${body}`);
+    const sent = await sendEmail({ to: email, subject, text: body, html: htmlMail.html });
     await NotificationLog.create({
       to: email,
       channel: "email",
@@ -86,8 +96,21 @@ export async function notifyOrder(order: OrderLike, templateKey?: string) {
       subject,
       body,
       orderNumber: order.number,
-      status: process.env.SMTP_HOST ? "sent" : "sent",
+      status: sent.sent ? "sent" : "failed",
     });
+  }
+
+  if (key === "order_placed") {
+    const shop = await shopInbox();
+    if (shop && shop.toLowerCase() !== email.toLowerCase()) {
+      const shopMail = shopNewOrderEmail({ store, order, amountLabel });
+      await sendEmail({
+        to: shop,
+        subject: shopMail.subject,
+        text: shopMail.text,
+        html: shopMail.html,
+      });
+    }
   }
 
   console.info(`[sms:${key}] ${phone} → ${sms}`);

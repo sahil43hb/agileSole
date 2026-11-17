@@ -1,4 +1,4 @@
-import { fail, fromError, ok } from "@/server/lib/api";
+import { errorMessage, fail, fromError, ok } from "@/server/lib/api";
 import { getGuestId } from "@/server/lib/guest";
 import { getSessionCustomer } from "@/server/lib/require-customer";
 import { placeOrder } from "@/server/modules/commerce/order.service";
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const order = await placeOrder(guestId, body, skipOtp ? { skipOtp: true } : undefined);
     return ok({ order }, 201);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not place order";
+    const message = errorMessage(err, "Could not place order");
     if (
       message.includes("OTP") ||
       message.includes("empty") ||

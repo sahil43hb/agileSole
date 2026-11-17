@@ -5,7 +5,7 @@ import { getOrderById } from "@/server/modules/commerce/order.service";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_: Request, ctx: Ctx) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminApi("orders", "view");
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;

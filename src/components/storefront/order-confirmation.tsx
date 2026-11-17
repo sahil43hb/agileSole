@@ -11,6 +11,7 @@ import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "./auth-provider";
 import { useWishlist } from "./wishlist-provider";
 import { ShippingEta } from "./shipping-eta";
+import { toastApiError } from "@/components/ui/toast";
 
 type Order = {
   number: string;
@@ -42,7 +43,7 @@ export function OrderConfirmation() {
     fetch(`/api/v1/orders/confirmation?number=${encodeURIComponent(number)}`, { credentials: "same-origin" })
       .then((r) => r.json())
       .then((json) => {
-        if (!json.ok) setError(json.error?.message || t("notFound"));
+        if (!json.ok) toastApiError(json, t("notFound"));
         else {
           const next = json.data.order as Order;
           setOrder(next);

@@ -4,7 +4,7 @@ import { getHomeSections, saveHomeSections } from "@/server/modules/cms/cms.serv
 import { writeAudit } from "@/server/modules/admin/audit.service";
 
 export async function GET() {
-  const gate = await requireAdminApi("cms");
+  const gate = await requireAdminApi("homepage", "view");
   if (gate.response) return gate.response;
   try {
     return ok({ sections: await getHomeSections() });
@@ -14,7 +14,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const gate = await requireAdminApi("cms");
+  const gate = await requireAdminApi("homepage", "update");
   if (gate.response) return gate.response;
   try {
     const body = (await request.json()) as { sections: { type: string; enabled: boolean }[] };

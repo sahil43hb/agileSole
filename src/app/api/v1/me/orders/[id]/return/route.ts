@@ -1,4 +1,4 @@
-import { fail, fromError, ok } from "@/server/lib/api";
+import { errorMessage, fail, ok } from "@/server/lib/api";
 import { requireCustomerApi } from "@/server/lib/require-customer";
 import { requestReturn } from "@/server/modules/account/account.service";
 import { z } from "zod";
@@ -14,7 +14,7 @@ export async function POST(request: Request, ctx: Ctx) {
     const order = await requestReturn(gate.customer!.id, id, body.reason || "");
     return ok({ order });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not request return";
+    const message = errorMessage(err, "Could not request return");
     return fail("RETURN", message, 422);
   }
 }

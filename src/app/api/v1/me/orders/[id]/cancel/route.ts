@@ -1,4 +1,4 @@
-import { fail, fromError, ok } from "@/server/lib/api";
+import { errorMessage, fail, ok } from "@/server/lib/api";
 import { requireCustomerApi } from "@/server/lib/require-customer";
 import { requestCancel } from "@/server/modules/account/account.service";
 import { z } from "zod";
@@ -14,7 +14,7 @@ export async function POST(request: Request, ctx: Ctx) {
     const order = await requestCancel(gate.customer!.id, id, body.reason || "");
     return ok({ order });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not cancel";
+    const message = errorMessage(err, "Could not cancel");
     return fail("CANCEL", message, 422);
   }
 }

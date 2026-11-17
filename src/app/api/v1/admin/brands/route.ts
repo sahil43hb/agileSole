@@ -1,9 +1,9 @@
-import { fail, fromError, ok } from "@/server/lib/api";
+import { errorMessage, fail, fromError, ok } from "@/server/lib/api";
 import { requireAdminApi } from "@/server/lib/require-admin";
 import { listBrands, upsertBrand } from "@/server/modules/catalog/taxonomy.service";
 
 export async function GET() {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminApi("brands", "view");
   if (gate.response) return gate.response;
   try {
     return ok({ brands: await listBrands() });
@@ -13,12 +13,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminApi("brands", "create");
   if (gate.response) return gate.response;
   try {
     return ok({ brand: await upsertBrand(await request.json()) }, 201);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed";
+    const message = errorMessage(err, "Failed");
     return fail("VALIDATION", message, 422);
   }
 }

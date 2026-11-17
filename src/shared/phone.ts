@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export function normalizePkPhone(raw: string) {
   const digits = raw.replace(/\D/g, "");
   let national = digits;
@@ -17,3 +19,8 @@ export function isPkMobile(raw: string) {
     return false;
   }
 }
+
+export const pkPhoneField = z
+  .string()
+  .min(10, "Enter a Pakistan mobile like 03XX XXXXXXX")
+  .refine((value) => isPkMobile(value), "Enter a Pakistan mobile like 03XX XXXXXXX");

@@ -1,4 +1,4 @@
-import { fail, fromError, ok } from "@/server/lib/api";
+import { errorMessage, fail, fromError, ok } from "@/server/lib/api";
 import { getGuestId } from "@/server/lib/guest";
 import { applyCartPromo, clearCartPromo } from "@/server/modules/commerce/cart.service";
 
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     const guestId = await getGuestId();
     return ok(await applyCartPromo(guestId, body.code, body.locale || "en"));
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not apply";
+    const message = errorMessage(err, "Could not apply");
     return fail("PROMO", message, 422);
   }
 }

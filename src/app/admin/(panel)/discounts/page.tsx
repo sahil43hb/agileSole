@@ -1,10 +1,13 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Plus, RotateCcw, X } from "lucide-react";
+import { Plus, RotateCcw } from "lucide-react";
 import { formatPkr } from "@/shared/money";
 import {
   AdminModal,
+  AdminModalBody,
+  AdminModalFooter,
+  AdminModalHeader,
   AdminHeaderAction,
   AdminPageHeader,
   AdminSearch,
@@ -14,10 +17,15 @@ import {
   SingleSelect,
   StatusBadge,
   RowEditButton,
+  modalBtnPrimary,
+  modalBtnSecondary,
   rowBtnDanger,
 } from "@/components/admin/ui";
 import { AppSelect } from "@/components/ui/app-select";
 import { SwitchTrack } from "@/components/ui/switch";
+import { toast, toastApiError, toastFromResponse } from "@/components/ui/toast";
+import { BusyLabel } from "@/components/ui/spinner";
+import { useCan } from "@/components/admin/access";
 
 type Discount = {
   _id: string;
@@ -48,6 +56,7 @@ function valueLabel(r: Discount) {
 }
 
 export default function DiscountsPage() {
+  const access = useCan("discounts");
   const [rows, setRows] = useState<Discount[]>([]);
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState("all");
@@ -118,9 +127,10 @@ export default function DiscountsPage() {
     const json = await res.json();
     setBusy(false);
     if (!json.ok) {
-      setFormError(json.error?.message || "Could not save");
+      toastApiError(json, "Could not save");
       return;
     }
+    toast.success("Discount saved");
     setEditing(null);
     await load();
   }
@@ -128,8 +138,13 @@ export default function DiscountsPage() {
   async function remove() {
     if (!pending) return;
     setBusy(true);
-    await fetch(`/api/v1/admin/discounts/${pending._id}`, { method: "DELETE" });
+    const res = await fetch(`/api/v1/admin/discounts/${pending._id}`, { method: "DELETE" });
     setBusy(false);
+    const result = await toastFromResponse(res, "Could not delete", "Discount deleted");
+    if (!result.ok) {
+      setPending(null);
+      return;
+    }
     setPending(null);
     await load();
   }
@@ -139,7 +154,7 @@ export default function DiscountsPage() {
       <AdminPageHeader
         title="Discounts"
         description={`${rows.length} codes for checkout and Facebook orders`}
-        actions={<AdminHeaderAction icon={Plus} label="Add code" onClick={openNew} />}
+        actions={access.create ? <AdminHeaderAction icon={Plus} label="Add code" onClick={openNew} /> : undefined}
       />
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--admin-line)] bg-white p-3 shadow-sm">
         <AdminSearch value={query} onChange={setQuery} placeholder="Search code" />
@@ -209,10 +224,12 @@ export default function DiscountsPage() {
                 </td>
                 <td>
                   <div className="flex justify-end gap-2">
-                    <RowEditButton onClick={() => openEdit(r)} />
+                    {access.update ? <RowEditButton onClick={() => openEdit(r)} /> : null}
+                    {access.delete ? (
                     <button type="button" className={rowBtnDanger} onClick={() => setPending(r)}>
                       Delete
                     </button>
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -224,17 +241,13 @@ export default function DiscountsPage() {
 
       {editing ? (
         <AdminModal onClose={() => setEditing(null)}>
-          <form onSubmit={save} className="relative z-10 w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-[#e7ebe8] px-6 py-5">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">Growth</p>
-                <h2 className="mt-1 text-lg font-semibold tracking-tight">{editing === "new" ? "Add discount" : "Edit discount"}</h2>
-              </div>
-              <button type="button" onClick={() => setEditing(null)} className="flex h-9 w-9 items-center justify-center rounded-xl text-ink-muted hover:bg-[#f4f7f5]" aria-label="Close">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="space-y-4 px-6 py-5">
+          <form onSubmit={save} className="flex min-h-0 flex-1 flex-col">
+            <AdminModalHeader
+              kicker="Growth"
+              title={editing === "new" ? "Add discount" : "Edit discount"}
+              onClose={() => setEditing(null)}
+            />
+            <AdminModalBody className="space-y-4">
               <label className="block text-[13px] font-medium text-ink-muted">
                 Code
                 <input required className={`${field} font-mono uppercase`} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} />
@@ -276,15 +289,17 @@ export default function DiscountsPage() {
                 <SwitchTrack on={form.isActive} />
               </button>
               {formError ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p> : null}
-            </div>
-            <div className="flex justify-end gap-2 border-t border-[#e7ebe8] bg-[#f7f8f7] px-6 py-4">
-              <button type="button" onClick={() => setEditing(null)} className="h-10 rounded-xl border border-[#e7ebe8] bg-white px-4 text-sm font-medium">
+            </AdminModalBody>
+            <AdminModalFooter>
+              <button type="button" onClick={() => setEditing(null)} className={modalBtnSecondary}>
                 Cancel
               </button>
-              <button type="submit" disabled={busy} className="h-10 rounded-xl bg-brand px-5 text-sm font-medium text-white disabled:opacity-60">
-                {busy ? "Saving…" : editing === "new" ? "Create code" : "Save changes"}
+              <button type="submit" disabled={busy} className={modalBtnPrimary}>
+                <BusyLabel loading={busy} label="Saving…">
+                  {editing === "new" ? "Create code" : "Save changes"}
+                </BusyLabel>
               </button>
-            </div>
+            </AdminModalFooter>
           </form>
         </AdminModal>
       ) : null}

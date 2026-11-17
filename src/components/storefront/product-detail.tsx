@@ -10,6 +10,7 @@ import { useWishlist } from "./wishlist-provider";
 import { useCart } from "./cart-provider";
 import { trackView } from "./recently-viewed";
 import { ProductGallery } from "./product-gallery";
+import { BusyLabel } from "@/components/ui/spinner";
 
 type Chart = { title: string; rows: { eu?: string; pk?: string; uk?: string; us?: string; cm?: string }[] };
 
@@ -36,6 +37,7 @@ export function ProductDetail({
   const [guide, setGuide] = useState(false);
   const [sizePulse, setSizePulse] = useState(false);
   const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     trackView(product.slug);
@@ -66,7 +68,9 @@ export function ProductDetail({
   async function addToBag() {
     if (!requireSize()) return;
     if (!selected) return;
+    setBusy(true);
     const err = await add(selected.sku, 1);
+    setBusy(false);
     setNote(err || t("added"));
   }
 
@@ -198,10 +202,13 @@ export function ProductDetail({
             <button
               type="button"
               data-testid="add-to-cart"
-              className="btn-primary h-12 flex-1 rounded-full px-7"
+              disabled={busy}
+              className="btn-primary inline-flex h-12 flex-1 items-center justify-center rounded-full px-7 disabled:opacity-60"
               onClick={() => void addToBag()}
             >
-              {t("add")}
+              <BusyLabel loading={busy} label={c("adding")}>
+                {t("add")}
+              </BusyLabel>
             </button>
             <button
               type="button"
@@ -252,18 +259,21 @@ export function ProductDetail({
       <div className="fixed inset-x-0 bottom-14 z-30 border-t border-black/[0.06] bg-white/95 px-4 py-3 backdrop-blur md:hidden">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold">{formatPkr(price)}</p>
-          <button type="button" className="btn-primary h-11 rounded-full px-5" onClick={() => void addToBag()}>
-            {t("add")}
+          <button type="button" disabled={busy} className="btn-primary inline-flex h-11 items-center justify-center rounded-full px-5 disabled:opacity-60" onClick={() => void addToBag()}>
+            <BusyLabel loading={busy} label={c("adding")}>
+              {t("add")}
+            </BusyLabel>
           </button>
         </div>
       </div>
 
       {guide && chart ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-ink/40 md:items-center md:justify-center" onClick={() => setGuide(false)}>
+        <div className="fixed inset-0 z-50 flex items-end bg-ink/40 md:items-center md:justify-center md:p-5" onClick={() => setGuide(false)}>
           <div
-            className="max-h-[85vh] w-full overflow-y-auto rounded-t-[1.6rem] bg-white p-6 shadow-xl md:max-w-xl md:rounded-[1.6rem]"
+            className="flex max-h-[92dvh] w-full min-h-0 flex-col overflow-hidden rounded-t-[1.6rem] bg-white shadow-xl md:max-h-[min(90dvh,760px)] md:max-w-xl md:rounded-[1.6rem]"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
             <h2 className="text-xl font-semibold tracking-tight">{chart.title}</h2>
             <p className="mt-2 text-sm text-ink-muted">{t("sizeGuideBody")}</p>
             <div className="mt-4 overflow-x-auto">
@@ -293,6 +303,7 @@ export function ProductDetail({
             <button type="button" className="mt-5 text-sm font-medium text-ink-muted hover:text-ink" onClick={() => setGuide(false)}>
               {c("close")}
             </button>
+            </div>
           </div>
         </div>
       ) : null}

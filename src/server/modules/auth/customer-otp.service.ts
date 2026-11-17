@@ -1,6 +1,7 @@
 import { connectDb } from "@/server/db/connect";
 import { Customer, OtpChallenge } from "@/server/models";
 import { generateOtp, hashOtp, sendOtpStub } from "@/server/lib/otp";
+import { isSmtpConfigured, sendEmail } from "@/server/lib/mailer";
 import { signCustomerToken } from "@/server/lib/session";
 import { normalizePkPhone } from "@/shared/phone";
 
@@ -18,9 +19,9 @@ function normalizeIdentifier(raw: string) {
   }
 }
 
-export async function requestOtp(raw: string, purpose: "login" | "checkout" = "login") {
+export async function requestOtp(raw: string, purpose: "login" | "checkout" = "login", notifyEmail?: string) {
   await connectDb();
-  const { identifier } = normalizeIdentifier(raw);
+  const { kind, identifier } = normalizeIdentifier(raw);
   if (identifier.length < 5) {
     throw new Error("Enter a valid phone or email");
   }
@@ -34,6 +35,36 @@ export async function requestOtp(raw: string, purpose: "login" | "checkout" = "l
     expiresAt: new Date(Date.now() + TEN_MIN),
   });
   await sendOtpStub(identifier, code, purpose);
+
+  const emailTargets = new Set<string>();
+  if (kind === "email") emailTargets.add(identifier);
+  else {
+    const existing = await Customer.findOne({ phone: identifier }).lean<{ email?: string } | null>();
+    if (existing?.email?.includes("@")) emailTargets.add(existing.email.toLowerCase());
+  }
+  const extra = (notifyEmail || "").trim().toLowerCase();
+  if (extra.includes("@")) emailTargets.add(extra);
+
+  if (emailTargets.size) {
+    const { getPublicSettings } = await import("@/server/modules/admin/settings.service");
+    const store = await getPublicSettings();
+    const { otpEmail } = await import("@/server/lib/email-templates");
+    const mail = otpEmail({ store, code, purpose });
+    let emailed = false;
+    for (const to of emailTargets) {
+      const sent = await sendEmail({
+        to,
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
+      });
+      if (sent.sent) emailed = true;
+    }
+    if (kind === "email" && isSmtpConfigured() && !emailed) {
+      throw new Error("Could not send the code by email. Try again in a minute.");
+    }
+  }
+
   const payload: { identifier: string; expiresInSec: number; devCode?: string } = {
     identifier,
     expiresInSec: 600,

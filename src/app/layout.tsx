@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Inter, Noto_Nastaliq_Urdu } from "next/font/google";
 import "./globals.css";
 import { BrandIconSync } from "@/components/brand/brand-icon-sync";
+import { ToastHost } from "@/components/ui/toast";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body suppressHydrationWarning className="min-h-dvh bg-paper font-sans text-ink antialiased">
         <BrandIconSync />
         {children}
+        <ToastHost />
       </body>
     </html>
   );

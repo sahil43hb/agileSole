@@ -6,6 +6,8 @@ import { Eye, EyeOff, ArrowRight, ShieldCheck } from "lucide-react";
 import { Wordmark } from "@/components/brand/logo";
 import { BrandIconSync } from "@/components/brand/brand-icon-sync";
 import { DEFAULT_LOGO } from "@/lib/brand-icon";
+import { toast, toastApiError } from "@/components/ui/toast";
+import { BusyLabel } from "@/components/ui/spinner";
 
 function AdminLoginForm() {
   const router = useRouter();
@@ -44,9 +46,10 @@ function AdminLoginForm() {
     const json = await res.json();
     setLoading(false);
     if (!json.ok) {
-      setError(json.error?.message || "Could not sign in");
+      toastApiError(json, "Email or password is incorrect");
       return;
     }
+    toast.success("Signed in");
     router.push(params.get("from") || "/admin");
     router.refresh();
   }
@@ -154,7 +157,9 @@ function AdminLoginForm() {
                 disabled={loading}
                 className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-brand py-3.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(31,166,74,0.28)] transition hover:bg-brand-dark disabled:opacity-60"
               >
-                {loading ? "Signing in…" : "Sign in"}
+                <BusyLabel loading={loading} label="Signing in…">
+                  Sign in
+                </BusyLabel>
                 {!loading ? (
                   <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                 ) : null}

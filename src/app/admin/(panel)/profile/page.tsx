@@ -3,6 +3,8 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast, toastApiError } from "@/components/ui/toast";
+import { BusyLabel } from "@/components/ui/spinner";
 
 function initialsOf(name: string) {
   return name
@@ -56,12 +58,12 @@ export default function AdminProfilePage() {
     const json = await res.json();
     setSaving(false);
     if (!json.ok) {
-      setError(json.error?.message || "Could not save");
+      toastApiError(json, "Could not save");
       return;
     }
     setCurrentPassword("");
     setNewPassword("");
-    setMessage("Profile updated");
+    toast.success("Profile updated");
     router.refresh();
   }
 
@@ -146,8 +148,10 @@ export default function AdminProfilePage() {
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
         {message ? <p className="text-sm text-brand-dark">{message}</p> : null}
 
-        <button type="submit" disabled={saving} className="btn-primary h-11 px-6">
-          {saving ? "Saving…" : "Save profile"}
+        <button type="submit" disabled={saving} className="btn-primary inline-flex h-11 items-center justify-center px-6 disabled:opacity-60">
+          <BusyLabel loading={saving} label="Saving…">
+            Save profile
+          </BusyLabel>
         </button>
       </form>
     </div>

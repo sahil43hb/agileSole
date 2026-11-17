@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ADMIN_COOKIE, verifyAdminToken } from "@/server/lib/session";
-import { getStaffById } from "@/server/modules/auth/admin.service";
+import { getStaffById, type AdminSession } from "@/server/modules/auth/admin.service";
 import { fail } from "@/server/lib/api";
+import { actionFromMethod, hasPermission, type PermissionAction } from "@/shared/admin-rbac";
 
 export async function getAdminStaff() {
   const token = (await cookies()).get(ADMIN_COOKIE)?.value;
@@ -18,16 +19,32 @@ export async function requireAdminPage() {
   return staff;
 }
 
-export async function requireAdminApi(area?: string) {
+export async function requireAdminApi(module?: string, action: PermissionAction = "view") {
   const staff = await getAdminStaff();
   if (!staff) {
     return { staff: null, response: fail("UNAUTHENTICATED", "Sign in required", 401) };
   }
-  if (area && staff.role !== "super_admin") {
-    const { canRole } = await import("@/server/modules/admin/staff.service");
-    if (!canRole(staff.role, area) && area !== "dashboard") {
-      return { staff: null, response: fail("FORBIDDEN", "Not allowed for this role", 403) };
-    }
+  if (module && !hasPermission(staff.permissions, module, action, staff.isOwner)) {
+    return { staff: null, response: fail("FORBIDDEN", "You don’t have permission to do that", 403) };
   }
   return { staff, response: null };
 }
+
+export async function requireAdminAny(checks: Array<[string, PermissionAction]>) {
+  const staff = await getAdminStaff();
+  if (!staff) {
+    return { staff: null, response: fail("UNAUTHENTICATED", "Sign in required", 401) };
+  }
+  const ok = checks.some(([module, action]) => hasPermission(staff.permissions, module, action, staff.isOwner));
+  if (!ok) {
+    return { staff: null, response: fail("FORBIDDEN", "You don’t have permission to do that", 403) };
+  }
+  return { staff, response: null };
+}
+
+export async function requireAdminModule(module: string, request?: Request) {
+  const action = request ? actionFromMethod(request.method) : "view";
+  return requireAdminApi(module, action);
+}
+
+export type { AdminSession };

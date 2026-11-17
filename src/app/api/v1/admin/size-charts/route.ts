@@ -3,7 +3,7 @@ import { requireAdminApi } from "@/server/lib/require-admin";
 import { listSizeCharts, upsertSizeChart } from "@/server/modules/catalog/taxonomy.service";
 
 export async function GET() {
-  const gate = await requireAdminApi("charts");
+  const gate = await requireAdminApi("size_charts", "view");
   if (gate.response) return gate.response;
   try {
     return ok({ charts: await listSizeCharts("en") });
@@ -13,7 +13,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireAdminApi("charts");
+  const gate = await requireAdminApi("size_charts", "create");
   if (gate.response) return gate.response;
   try {
     return ok({ chart: await upsertSizeChart(await request.json()) }, 201);

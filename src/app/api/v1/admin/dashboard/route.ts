@@ -1,14 +1,11 @@
-import { cookies } from "next/headers";
-import { fail, fromError, ok } from "@/server/lib/api";
-import { ADMIN_COOKIE, verifyAdminToken } from "@/server/lib/session";
+import { fromError, ok } from "@/server/lib/api";
+import { requireAdminApi } from "@/server/lib/require-admin";
 import { dashboardSnapshot } from "@/server/modules/admin/dashboard.service";
 
 export async function GET() {
+  const gate = await requireAdminApi("dashboard", "view");
+  if (gate.response) return gate.response;
   try {
-    const token = (await cookies()).get(ADMIN_COOKIE)?.value;
-    if (!token) return fail("UNAUTHENTICATED", "Sign in required", 401);
-    const session = await verifyAdminToken(token);
-    if (!session) return fail("UNAUTHENTICATED", "Sign in required", 401);
     const data = await dashboardSnapshot();
     return ok(data);
   } catch (err) {

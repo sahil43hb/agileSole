@@ -6,7 +6,7 @@ import { setReviewStatus } from "@/server/modules/catalog/review.service";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, ctx: Ctx) {
-  const gate = await requireAdminApi("reviews");
+  const gate = await requireAdminApi("reviews", "update");
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;

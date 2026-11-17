@@ -20,6 +20,21 @@ export async function POST(request: Request) {
     });
     const { notifyAdminTicket } = await import("@/server/modules/admin/admin-notice.service");
     notifyAdminTicket(ticket.toObject());
+    const { sendEmail, shopInbox } = await import("@/server/lib/mailer");
+    const { getPublicSettings } = await import("@/server/modules/admin/settings.service");
+    const { contactShopEmail } = await import("@/server/lib/email-templates");
+    const shop = await shopInbox();
+    if (shop) {
+      const store = await getPublicSettings();
+      const mail = contactShopEmail({ store, name: body.name, contact: body.contact, message: body.message });
+      await sendEmail({
+        to: shop,
+        replyTo: body.contact.includes("@") ? body.contact : undefined,
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
+      });
+    }
     return ok({ ticketId: String(ticket._id) }, 201);
   } catch (err) {
     return fromError(err);

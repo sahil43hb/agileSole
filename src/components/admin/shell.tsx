@@ -21,6 +21,7 @@ import {
   Ruler,
   BarChart3,
   Shield,
+  KeyRound,
   ScrollText,
   Settings,
   LogOut,
@@ -32,6 +33,8 @@ import {
 import { AdminNotifications } from "@/components/admin/notifications";
 import { Wordmark } from "@/components/brand/logo";
 import { DEFAULT_LOGO, LOGO_CHANGED_EVENT } from "@/lib/brand-icon";
+import { hasPermission, moduleForPath } from "@/shared/admin-rbac";
+import type { AdminSession } from "@/server/modules/auth/admin.service";
 
 type NavItem = {
   href: string;
@@ -80,15 +83,17 @@ const GROUPS: { title: string; items: NavItem[] }[] = [
     title: "Workspace",
     items: [
       { href: "/admin/staff", label: "Staff", icon: Shield },
+      { href: "/admin/roles", label: "Roles", icon: KeyRound },
       { href: "/admin/audit", label: "Audit", icon: ScrollText },
       { href: "/admin/settings", label: "Settings", icon: Settings },
     ],
   },
 ];
 
-function roleLabel(role: string) {
-  if (role === "super_admin") return "Owner";
-  return role.replaceAll("_", " ");
+function roleLabel(staff: { role: string; roleName?: string }) {
+  if (staff.roleName) return staff.roleName;
+  if (staff.role === "super_admin") return "Owner";
+  return staff.role.replaceAll("_", " ");
 }
 
 function initials(name: string) {
@@ -106,7 +111,7 @@ export function AdminShell({
   logoSrc,
   storeName = "Agile Sole",
 }: {
-  staff: { name: string; email: string; role: string };
+  staff: AdminSession;
   children: ReactNode;
   logoSrc?: string;
   storeName?: string;
@@ -152,6 +157,17 @@ export function AdminShell({
     });
   }
 
+  const groups = useMemo(() => {
+    return GROUPS.map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        const moduleId = moduleForPath(item.href);
+        if (!moduleId) return true;
+        return hasPermission(staff.permissions, moduleId, "view", staff.isOwner);
+      }),
+    })).filter((group) => group.items.length);
+  }, [staff]);
+
   const pageTitle = useMemo(() => {
     if (pathname.startsWith("/admin/profile")) return "Profile";
     const all = GROUPS.flatMap((g) => g.items);
@@ -178,7 +194,7 @@ export function AdminShell({
         </Link>
       </div>
       <nav className="admin-sidebar flex-1 overflow-y-auto px-2 py-4">
-        {GROUPS.map((group) => (
+        {groups.map((group) => (
           <div key={group.title} className="mb-4">
             {!narrow ? (
               <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
@@ -281,7 +297,7 @@ export function AdminShell({
                   <div className="min-w-0">
                     <p className="truncate font-medium">{staff.name}</p>
                     <p className="truncate text-xs text-ink-muted">{staff.email}</p>
-                    <p className="mt-0.5 text-[11px] capitalize text-ink-faint">{roleLabel(staff.role)}</p>
+                    <p className="mt-0.5 text-[11px] capitalize text-ink-faint">{roleLabel(staff)}</p>
                   </div>
                 </div>
                 <div className="p-2">
