@@ -75,7 +75,7 @@ export async function seedDatabase() {
   await connectDb();
   console.log("Connected to MongoDB");
 
-  const email = (process.env.SEED_ADMIN_EMAIL || "ivan.p@example.net").toLowerCase();
+  const email = (process.env.SEED_ADMIN_EMAIL || "agilesole@gmail.com").toLowerCase();
   const password = process.env.SEED_ADMIN_PASSWORD || "Admin123";
   const staffPassword = process.env.SEED_STAFF_PASSWORD || "Staff123";
 
@@ -975,7 +975,7 @@ export async function seedDatabase() {
         currency: "PKR",
         locales: ["en", "ur"],
         whatsapp: process.env.NEXT_PUBLIC_WHATSAPP || "923069158103",
-        email: "sahilmubeen30@gmail.com",
+        email: "agilesole@gmail.com",
         tagline: { en: "Every Step a Perfect Beat", ur: "ہر قدم ایک مکمل تال ہے" },
         returnDays: 14,
         maxCod: 50000,

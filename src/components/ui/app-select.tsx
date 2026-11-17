@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 
@@ -66,9 +74,9 @@ export function AppSelect({
     ? options.filter((o) => o.label.toLowerCase().includes(query.trim().toLowerCase()))
     : options;
 
-  function updatePos() {
+  const updatePos = useCallback(() => {
     if (triggerRef.current) setPos(placeMenu(triggerRef.current, options.length, searchable));
-  }
+  }, [options.length, searchable]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -80,7 +88,7 @@ export function AppSelect({
       window.removeEventListener("resize", onWin);
       window.removeEventListener("scroll", onWin, true);
     };
-  }, [open]);
+  }, [open, updatePos]);
 
   useEffect(() => {
     if (!open) {
@@ -161,7 +169,6 @@ export function AppSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
-        aria-required={required || undefined}
         onClick={() => !disabled && setOpen((v) => !v)}
         onKeyDown={onTriggerKey}
         className={`${trigger} text-start text-ink outline-none transition hover:bg-white disabled:opacity-50 ${

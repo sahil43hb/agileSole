@@ -12,7 +12,7 @@ import { BusyLabel } from "@/components/ui/spinner";
 function AdminLoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const [email, setEmail] = useState("sahilmubeen30@gmail.com");
+  const [email, setEmail] = useState("agilesole@gmail.com");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -114,7 +114,7 @@ function AdminLoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="mt-2 w-full rounded-2xl border border-paper-line bg-paper px-4 py-3 text-sm shadow-sm transition placeholder:text-ink-faint focus-visible:border-brand"
-                  placeholder="you@agilesole.com"
+                  placeholder="agilesole@gmail.com"
                   required
                 />
               </label>

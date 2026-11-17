@@ -1,7 +1,7 @@
 import { Link } from "@/i18n/navigation";
 import { LOOKBOOK } from "@/content/lookbook";
 
-export function LookbookGrid({ locale }: { locale: string }) {
+export function LookbookGrid({ locale, shine = false }: { locale: string; shine?: boolean }) {
   const ur = locale === "ur";
   const lastIndex = LOOKBOOK.length - 1;
   return (
@@ -13,7 +13,7 @@ export function LookbookGrid({ locale }: { locale: string }) {
           <Link
             key={tile.href + tile.en}
             href={tile.href}
-            className={`group relative isolate overflow-hidden ${
+            className={`group relative isolate overflow-hidden ${shine ? "home-shine" : ""} ${
               featured
                 ? "col-span-2 rounded-[1.6rem]"
                 : wide
@@ -31,7 +31,7 @@ export function LookbookGrid({ locale }: { locale: string }) {
             {!featured && !wide ? <span className="block aspect-[4/5]" /> : null}
             {wide ? <span className="block aspect-[16/7] md:aspect-[16/5]" /> : null}
             <div className="absolute inset-0 bg-gradient-to-t from-ink/75 via-ink/5 to-transparent" />
-            <span className={`absolute inset-x-0 bottom-0 text-white ${featured || wide ? "p-5 md:p-6" : "p-3 md:p-4"}`}>
+            <span className={`absolute inset-x-0 bottom-0 z-[3] text-white ${featured || wide ? "p-5 md:p-6" : "p-3 md:p-4"}`}>
               <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">
                 {ur ? tile.noteUr : tile.note}
               </span>

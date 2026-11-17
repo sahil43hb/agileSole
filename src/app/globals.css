@@ -189,3 +189,233 @@ button.as-switch:focus-visible {
   padding-left: 14px !important;
   padding-right: 44px !important;
 }
+
+/* Homepage motion — scoped so shop/admin stay still */
+.home-stage {
+  --home-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-reveal {
+  opacity: 0;
+  transform: translate3d(0, 32px, 0);
+  transition:
+    opacity 0.85s var(--home-ease),
+    transform 0.85s var(--home-ease);
+  transition-delay: var(--home-delay, 0ms);
+}
+
+.home-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+.home-hero-copy > *:not(ul) {
+  animation: home-rise 0.95s var(--home-ease) both;
+}
+
+.home-hero-copy > *:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.home-hero-copy > *:nth-child(2) {
+  animation-delay: 0.14s;
+}
+.home-hero-copy > *:nth-child(3) {
+  animation-delay: 0.24s;
+}
+.home-hero-copy > *:nth-child(4) {
+  animation-delay: 0.36s;
+}
+.home-hero-copy > *:nth-child(5) {
+  animation-delay: 0.48s;
+}
+
+.home-hero-copy .home-trust-item {
+  animation: home-rise 0.7s var(--home-ease) both;
+}
+.home-hero-copy .home-trust-item:nth-child(1) {
+  animation-delay: 0.55s;
+}
+.home-hero-copy .home-trust-item:nth-child(2) {
+  animation-delay: 0.62s;
+}
+.home-hero-copy .home-trust-item:nth-child(3) {
+  animation-delay: 0.69s;
+}
+.home-hero-copy .home-trust-item:nth-child(4) {
+  animation-delay: 0.76s;
+}
+
+@keyframes home-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.home-orb {
+  animation: home-drift 14s ease-in-out infinite;
+}
+.home-orb-slow {
+  animation: home-drift 18s ease-in-out infinite reverse;
+}
+
+@keyframes home-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(22px, -16px, 0);
+  }
+}
+
+.home-ken {
+  overflow: hidden;
+}
+.home-ken > img {
+  animation: home-ken 14s var(--home-ease) both;
+  will-change: transform;
+}
+.home-ken-delay > img {
+  animation-delay: 0.2s;
+  animation-duration: 16s;
+}
+.home-ken-late > img {
+  animation-delay: 0.35s;
+  animation-duration: 18s;
+}
+
+@keyframes home-ken {
+  from {
+    transform: scale(1.14);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.home-hero-mosaic {
+  animation: home-rise 1.05s var(--home-ease) 0.18s both;
+}
+
+.home-cta-arrow {
+  transition: transform 0.35s var(--home-ease);
+}
+.group\/cta:hover .home-cta-arrow {
+  transform: translateX(4px);
+}
+[dir="rtl"] .group\/cta:hover .home-cta-arrow {
+  transform: translateX(-4px) rotate(180deg);
+}
+
+.home-shine {
+  position: relative;
+  isolation: isolate;
+}
+.home-shine::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 62%
+  );
+  transform: translateX(-130%);
+  transition: transform 0.85s var(--home-ease);
+}
+.home-shine:hover::after {
+  transform: translateX(130%);
+}
+
+.home-ticker {
+  overflow: hidden;
+  border-block: 1px solid rgba(17, 17, 17, 0.08);
+  background: #fff;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.home-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: home-marquee 32s linear infinite;
+}
+
+.home-ticker:hover .home-ticker-track {
+  animation-play-state: paused;
+}
+
+.home-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 2.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #2a332c;
+  white-space: nowrap;
+}
+
+.home-ticker-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: #1fa64a;
+  box-shadow: 0 0 0 4px rgba(31, 166, 74, 0.16);
+}
+
+@keyframes home-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.home-pulse-dot {
+  animation: home-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes home-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(31, 166, 74, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.home-story-img {
+  transform: scale(1.06);
+  transition: transform 8s var(--home-ease);
+}
+.home-story:hover .home-story-img {
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-stage *,
+  .home-stage *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .home-reveal,
+  .home-hero-copy > *,
+  .home-hero-mosaic,
+  .home-ken > img {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}

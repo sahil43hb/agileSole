@@ -11,7 +11,7 @@ npm run dev
 ```
 
 - Store: http://localhost:3000/en
-- Admin: http://localhost:3000/admin (`ivan.p@example.net` / `Admin123` unless you change seed env; staff `Staff123`)
+- Admin: http://localhost:3000/admin (`agilesole@gmail.com` / `Admin123` unless you change seed env; staff `Staff123`)
 - Memory Mongo: keep `USE_MEMORY_MONGO=true` when Atlas is not set
 
 ```bash

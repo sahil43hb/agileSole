@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Heart, LayoutDashboard, LogOut, MapPin, Package, Star, Truck, UserRound } from "lucide-react";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
@@ -23,6 +23,10 @@ export function AccountShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
+  useEffect(() => {
+    if (!loading && !customer) router.replace("/account/login");
+  }, [loading, customer, router]);
+
   if (loading) {
     return (
       <div className="bg-[#f6f7f5]">
@@ -32,7 +36,6 @@ export function AccountShell({ children }: { children: ReactNode }) {
   }
 
   if (!customer) {
-    router.replace("/account/login");
     return (
       <div className="bg-[#f6f7f5]">
         <p className="mx-auto max-w-site px-4 py-16 text-sm text-ink-muted">{t("redirect")}</p>

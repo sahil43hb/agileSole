@@ -19,7 +19,7 @@ export function organizationJsonLd(store?: { name?: string; city?: string; email
     url,
     slogan: BRAND.tagline.en,
     logo: store?.logo ? (store.logo.startsWith("http") ? store.logo : `${url}${store.logo}`) : `${url}/favicon.png`,
-    email: store?.email || "sahilmubeen30@gmail.com",
+    email: store?.email || "agilesole@gmail.com",
     telephone: "+923069158103",
     address: {
       "@type": "PostalAddress",

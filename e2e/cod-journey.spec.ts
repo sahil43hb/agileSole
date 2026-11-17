@@ -28,7 +28,7 @@ test("browse, COD checkout, admin confirm, guest track", async ({ page, context 
 
   const admin = await context.newPage();
   await admin.goto("/admin/login");
-  await admin.getByTestId("admin-email").fill(process.env.SEED_ADMIN_EMAIL || "ivan.p@example.net");
+  await admin.getByTestId("admin-email").fill(process.env.SEED_ADMIN_EMAIL || "agilesole@gmail.com");
   await admin.getByTestId("admin-password").fill(process.env.SEED_ADMIN_PASSWORD || "Admin123");
   await admin.getByTestId("admin-submit").click();
   await admin.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 30_000 });

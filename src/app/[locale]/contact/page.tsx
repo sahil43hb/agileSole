@@ -12,7 +12,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
   const n = await getTranslations("nav");
   const { email, whatsapp, name: storeName, city } = await getPublicSettings();
   const digits = (whatsapp || process.env.NEXT_PUBLIC_WHATSAPP || "923069158103").replace(/\D/g, "");
-  const mail = email || "sahilmubeen30@gmail.com";
+  const mail = email || "agilesole@gmail.com";
   const tel = digits.startsWith("92") ? `+${digits}` : `+92${digits.replace(/^0/, "")}`;
 
   const channels = [

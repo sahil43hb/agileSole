@@ -5,7 +5,7 @@ export const STORE_DEFAULTS = {
   name: "Agile Sole",
   city: "Gujranwala",
   whatsapp: "923069158103",
-  email: "sahilmubeen30@gmail.com",
+  email: "agilesole@gmail.com",
   ntn: "",
   logo: "/favicon.png",
   returnDays: 14,
