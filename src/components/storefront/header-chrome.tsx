@@ -83,6 +83,7 @@ export function HeaderChrome({
               type="button"
               className="grid h-10 w-10 place-items-center rounded-full hover:bg-[#f3f5f3] md:hidden"
               aria-label={n("menu")}
+              aria-expanded={menuOpen}
               onClick={() => setMenuOpen(true)}
             >
               <Menu className="h-5 w-5" />
