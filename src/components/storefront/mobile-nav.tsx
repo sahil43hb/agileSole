@@ -8,6 +8,7 @@ import { useCart } from "./cart-provider";
 
 export function MobileNav() {
   const t = useTranslations("nav");
+  const c = useTranslations("common");
   const pathname = usePathname();
   const { count } = useWishlist();
   const { cart } = useCart();
@@ -15,7 +16,7 @@ export function MobileNav() {
   const items = [
     { href: "/", icon: Home, label: t("home") },
     { href: "/shop", icon: LayoutGrid, label: t("shop") },
-    { href: "/search", icon: Search, label: t("search") },
+    { href: "/search", icon: Search, label: c("search") },
     { href: "/wishlist", icon: Heart, label: t("wishlist"), badge: count },
     { href: "/cart", icon: ShoppingBag, label: t("cart"), badge: cart.count },
   ] as const;

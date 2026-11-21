@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LEGAL } from "@/content/legal";
 import { Link } from "@/i18n/navigation";
+import { getAllSettings, shippingPolicyCopy } from "@/server/modules/admin/settings.service";
 import { Breadcrumbs } from "./breadcrumbs";
 import { ContentShell } from "./content-hero";
 
@@ -15,7 +16,17 @@ export async function LegalPage({
   const n = await getTranslations("nav");
   const t = await getTranslations("pages");
   const f = await getTranslations("footer");
-  const copy = locale === "ur" ? LEGAL[kind].ur : LEGAL[kind].en;
+  let copy = locale === "ur" ? LEGAL[kind].ur : LEGAL[kind].en;
+  if (kind === "shipping") {
+    const { store } = await getAllSettings();
+    const body = shippingPolicyCopy(locale, store);
+    copy = {
+      ...copy,
+      sections: copy.sections.map((section) =>
+        section.heading === "COD shipping" || section.heading === "کیش شپنگ" ? { ...section, body } : section,
+      ),
+    };
+  }
 
   const related = [
     { href: "/shipping-returns", label: f("shipping"), id: "shipping" },

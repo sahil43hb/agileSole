@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { connectDb } from "@/server/db/connect";
-import { Discount } from "@/server/models";
+import { Discount, Order } from "@/server/models";
 
 export const discountInput = z.object({
   code: z.string().min(2),
@@ -8,8 +8,23 @@ export const discountInput = z.object({
   value: z.number().min(0).optional(),
   minOrder: z.number().min(0).optional(),
   maxUses: z.number().int().min(0).optional(),
+  maxPerCustomer: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
 });
+
+export type QuoteDiscountOpts = {
+  customerId?: string | null;
+  requireCustomer?: boolean;
+  excludeOrderId?: string;
+};
+
+async function countCodeUses(code: string, extra: Record<string, unknown> = {}) {
+  return Order.countDocuments({
+    discountCode: code,
+    status: { $nin: ["cancelled"] },
+    ...extra,
+  });
+}
 
 export async function listDiscounts() {
   await connectDb();
@@ -30,15 +45,41 @@ export async function upsertDiscount(raw: unknown, id?: string) {
   return JSON.parse(JSON.stringify(created));
 }
 
-export async function quoteDiscount(code: string, subtotal: number, shipping: number) {
+export async function quoteDiscount(code: string, subtotal: number, shipping: number, opts: QuoteDiscountOpts = {}) {
   await connectDb();
-  const row = await Discount.findOne({ code: code.trim().toUpperCase(), isActive: true });
-  if (!row) throw new Error("Code is not valid");
+  const normalized = code.trim().toUpperCase();
+  if (!normalized) throw new Error("Enter a promo code");
+  if (opts.requireCustomer && !opts.customerId) {
+    throw new Error("Sign in to apply a promo code");
+  }
+
+  const row = await Discount.findOne({ code: normalized });
+  if (!row) throw new Error("This promo code is not valid");
+  if (row.isActive === false) throw new Error("This promo code is not currently active");
   const now = Date.now();
-  if (row.startsAt && row.startsAt.getTime() > now) throw new Error("Code is not active yet");
-  if (row.endsAt && row.endsAt.getTime() < now) throw new Error("Code has expired");
-  if (row.maxUses && row.usedCount >= row.maxUses) throw new Error("Code has been used up");
-  if (subtotal < (row.minOrder || 0)) throw new Error(`Minimum order is Rs ${row.minOrder}`);
+  if (row.startsAt && row.startsAt.getTime() > now) throw new Error("This promo code is not active yet");
+  if (row.endsAt && row.endsAt.getTime() < now) throw new Error("This promo code has expired");
+
+  const exclude = opts.excludeOrderId ? { _id: { $ne: opts.excludeOrderId } } : {};
+  const used = Math.max(row.usedCount || 0, await countCodeUses(normalized, exclude));
+  if (row.maxUses && used >= row.maxUses) {
+    throw new Error("This promo code has reached its usage limit");
+  }
+
+  if (row.maxPerCustomer && opts.customerId) {
+    const customerUses = await countCodeUses(normalized, {
+      customerId: opts.customerId,
+      ...exclude,
+    });
+    if (customerUses >= row.maxPerCustomer) {
+      throw new Error("You've already used this promo code the maximum number of times");
+    }
+  }
+
+  if (subtotal < (row.minOrder || 0)) {
+    throw new Error(`Minimum order is Rs ${row.minOrder}`);
+  }
+
   let discount = 0;
   let nextShipping = shipping;
   if (row.type === "percent") discount = Math.round((subtotal * (row.value || 0)) / 100);
@@ -51,6 +92,13 @@ export async function quoteDiscount(code: string, subtotal: number, shipping: nu
     discount,
     shipping: nextShipping,
   };
+}
+
+export async function setDiscountActive(id: string, isActive: boolean) {
+  await connectDb();
+  const row = await Discount.findByIdAndUpdate(id, { $set: { isActive } }, { new: true });
+  if (!row) throw new Error("Discount not found");
+  return JSON.parse(JSON.stringify(row));
 }
 
 export async function deleteDiscount(id: string) {

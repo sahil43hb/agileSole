@@ -7,6 +7,7 @@ const discountSchema = new Schema(
     value: { type: Number, default: 0 },
     minOrder: { type: Number, default: 0 },
     maxUses: { type: Number, default: 0 },
+    maxPerCustomer: { type: Number, default: 0 },
     usedCount: { type: Number, default: 0 },
     startsAt: Date,
     endsAt: Date,

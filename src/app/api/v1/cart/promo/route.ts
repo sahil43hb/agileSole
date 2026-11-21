@@ -10,7 +10,8 @@ export async function POST(request: Request) {
     return ok(await applyCartPromo(guestId, body.code, body.locale || "en"));
   } catch (err) {
     const message = errorMessage(err, "Could not apply");
-    return fail("PROMO", message, 422);
+    const code = message.toLowerCase().includes("sign in") ? "PROMO_LOGIN" : "PROMO";
+    return fail(code, message, 422);
   }
 }
 

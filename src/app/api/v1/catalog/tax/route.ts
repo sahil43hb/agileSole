@@ -21,7 +21,12 @@ export async function GET(request: Request) {
       listCollections(locale),
       listSizeCharts(locale),
     ]);
-    return ok({ categories, brands, collections, sizeCharts });
+    return ok({
+      categories: categories.filter((c) => c.isActive !== false),
+      brands: brands.filter((b) => b.isActive !== false),
+      collections: collections.filter((c) => c.isActive !== false),
+      sizeCharts,
+    });
   } catch (err) {
     return fromError(err);
   }

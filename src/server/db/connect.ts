@@ -46,15 +46,12 @@ async function ensureDevData() {
   if (process.env.SKIP_DEV_SEED === "1") return;
   if (!ensureDevDataPromise) {
     ensureDevDataPromise = (async () => {
-      const { Product } = await import("@/server/models/product");
-      const count = await Product.countDocuments();
-      const withPhotos = await Product.countDocuments({ "images.0": { $exists: true } });
-      if (count === 0 || withPhotos === 0) {
+      const { Setting } = await import("@/server/models/setting");
+      const seeded = await Setting.findOne({ key: "seed.version" });
+      if (!seeded) {
         const { seedDatabase } = await import("./bootstrap");
         await seedDatabase();
       }
-      const { seedReviewsIfEmpty } = await import("@/server/modules/catalog/review.service");
-      await seedReviewsIfEmpty();
       const { seedFaqsIfEmpty } = await import("@/server/modules/cms/cms.service");
       await seedFaqsIfEmpty();
     })();

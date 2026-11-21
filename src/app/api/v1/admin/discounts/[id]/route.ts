@@ -1,6 +1,6 @@
 import { errorMessage, fail, fromError, ok } from "@/server/lib/api";
 import { requireAdminApi } from "@/server/lib/require-admin";
-import { deleteDiscount, upsertDiscount } from "@/server/modules/commerce/discount.service";
+import { deleteDiscount, setDiscountActive, upsertDiscount } from "@/server/modules/commerce/discount.service";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -9,7 +9,11 @@ export async function PATCH(request: Request, ctx: Ctx) {
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;
-    return ok({ discount: await upsertDiscount(await request.json(), id) });
+    const body = await request.json();
+    if (body && typeof body.isActive === "boolean" && Object.keys(body).length === 1) {
+      return ok({ discount: await setDiscountActive(id, body.isActive) });
+    }
+    return ok({ discount: await upsertDiscount(body, id) });
   } catch (err) {
     return fromError(err);
   }

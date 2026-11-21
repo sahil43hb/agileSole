@@ -273,7 +273,9 @@
     "apply": "Apply",
     "applying": "Applying…",
     "applied": "Code applied",
-    "removeCode": "Remove code"
+    "removeCode": "Remove code",
+    "loginForPromo": "Sign in to apply a promo code.",
+    "signIn": "Sign in"
   },
   "confirm": {
     "loading": "Loading confirmation…",

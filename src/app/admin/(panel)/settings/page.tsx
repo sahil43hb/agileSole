@@ -56,6 +56,9 @@ export default function SettingsPage() {
     maxCod: 50000,
     minOrder: 0,
     highValue: 15000,
+    shippingAlwaysFree: false,
+    shippingFee: 250,
+    shippingFreeOver: 5000,
   });
   const [analytics, setAnalytics] = useState({ ga4Id: "", metaPixelId: "" });
   const [payments, setPayments] = useState({
@@ -131,7 +134,7 @@ export default function SettingsPage() {
     <form onSubmit={save} className="space-y-5">
       <AdminPageHeader
         title="Store settings"
-        description="Brand, contact, COD limits, and what goes live next."
+        description="Brand, contact, shipping, COD limits, and what goes live next."
         actions={
           access.update ? (
           <AdminHeaderAction
@@ -242,6 +245,61 @@ export default function SettingsPage() {
                 <input type="number" min={0} className={field} value={store.highValue} onChange={(e) => setStore({ ...store, highValue: Number(e.target.value) })} />
               </label>
             </div>
+          </section>
+
+          <section className={card}>
+            <h2 className="text-sm font-semibold tracking-tight">Shipping</h2>
+            <p className="text-sm text-ink-muted">
+              Controls COD delivery on the bag and checkout. Promo codes that waive shipping still work on top of this.
+            </p>
+            <div
+              className={`flex items-center justify-between gap-4 rounded-xl border px-3.5 py-3 ${
+                store.shippingAlwaysFree
+                  ? "border-brand bg-brand-mist"
+                  : "border-[#e7ebe8] bg-[#f7f8f7]"
+              }`}
+            >
+              <div>
+                <p className={`text-sm font-medium ${store.shippingAlwaysFree ? "text-brand-dark" : "text-ink"}`}>
+                  Always free shipping
+                </p>
+                <p className="mt-0.5 text-[12px] text-ink-faint">Turn on to waive delivery on every order.</p>
+              </div>
+              <Switch
+                on={store.shippingAlwaysFree}
+                onChange={() => setStore({ ...store, shippingAlwaysFree: !store.shippingAlwaysFree })}
+              />
+            </div>
+            {store.shippingAlwaysFree ? (
+              <p className="text-sm text-ink-muted">Every order ships at no extra charge. Turn this off to set a delivery fee.</p>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className={label}>
+                  Shipping charge (PKR)
+                  <input
+                    type="number"
+                    min={0}
+                    className={field}
+                    value={store.shippingFee}
+                    onChange={(e) => setStore({ ...store, shippingFee: Number(e.target.value) })}
+                  />
+                  <span className="mt-1 block text-[12px] font-normal text-ink-faint">Fee when the order is below the free threshold.</span>
+                </label>
+                <label className={label}>
+                  Free shipping from (PKR)
+                  <input
+                    type="number"
+                    min={0}
+                    className={field}
+                    value={store.shippingFreeOver}
+                    onChange={(e) => setStore({ ...store, shippingFreeOver: Number(e.target.value) })}
+                  />
+                  <span className="mt-1 block text-[12px] font-normal text-ink-faint">
+                    Orders at or above this amount ship free. Use 0 to always charge.
+                  </span>
+                </label>
+              </div>
+            )}
           </section>
 
           <section className={card}>

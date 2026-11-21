@@ -273,7 +273,9 @@
     "apply": "لاگو",
     "applying": "لاگو ہو رہا ہے…",
     "applied": "کوڈ لگ گیا",
-    "removeCode": "کوڈ ہٹائیں"
+    "removeCode": "کوڈ ہٹائیں",
+    "loginForPromo": "پرومو کوڈ لگانے کے لیے سائن ان کریں۔",
+    "signIn": "سائن ان"
   },
   "confirm": {
     "loading": "تصدیق لوڈ ہو رہی ہے…",

@@ -18,11 +18,12 @@ import {
   RowEditButton,
   modalBtnPrimary,
   modalBtnSecondary,
+  rowBtn,
   rowBtnDanger,
 } from "@/components/admin/ui";
 import { AppSelect } from "@/components/ui/app-select";
 import { SwitchTrack } from "@/components/ui/switch";
-import { toast, toastApiError } from "@/components/ui/toast";
+import { toast, toastApiError, toastFromResponse } from "@/components/ui/toast";
 import { BusyLabel } from "@/components/ui/spinner";
 import { useCan } from "@/components/admin/access";
 
@@ -60,7 +61,7 @@ export default function CollectionsPage() {
   const [form, setForm] = useState(emptyForm);
   const [productQuery, setProductQuery] = useState("");
   const [formError, setFormError] = useState("");
-  const [pending, setPending] = useState<Col | null>(null);
+  const [pending, setPending] = useState<{ row: Col; action: "inactive" | "delete" } | null>(null);
   const [busy, setBusy] = useState(false);
   const [listError, setListError] = useState("");
 
@@ -150,11 +151,32 @@ export default function CollectionsPage() {
     await load();
   }
 
+  async function setActive(row: Col, isActive: boolean) {
+    setBusy(true);
+    const res = await fetch(`/api/v1/admin/collections/${row.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive }),
+    });
+    setBusy(false);
+    const result = await toastFromResponse(
+      res,
+      "Could not update collection",
+      isActive ? "Collection activated" : "Collection set inactive",
+    );
+    if (!result.ok) {
+      setPending(null);
+      return;
+    }
+    setPending(null);
+    await load();
+  }
+
   async function remove() {
     if (!pending) return;
     setBusy(true);
     setListError("");
-    const res = await fetch(`/api/v1/admin/collections/${pending.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/v1/admin/collections/${pending.row.id}`, { method: "DELETE" });
     const json = await res.json();
     setBusy(false);
     if (!json.ok) {
@@ -246,10 +268,20 @@ export default function CollectionsPage() {
                   <StatusBadge value={r.isActive ? "active" : "inactive"} />
                 </td>
                 <td>
-                  <div className="flex flex-wrap items-center justify-end gap-2">
+                  <div className="flex flex-nowrap items-center justify-end gap-1.5">
                     {access.update ? <RowEditButton onClick={() => openEdit(r)} /> : null}
+                    {access.update && r.isActive ? (
+                      <button type="button" className={rowBtn} onClick={() => setPending({ row: r, action: "inactive" })}>
+                        Inactive
+                      </button>
+                    ) : null}
+                    {access.update && !r.isActive ? (
+                      <button type="button" className={rowBtn} disabled={busy} onClick={() => void setActive(r, true)}>
+                        Activate
+                      </button>
+                    ) : null}
                     {access.delete ? (
-                    <button type="button" className={rowBtnDanger} onClick={() => setPending(r)}>
+                    <button type="button" className={rowBtnDanger} onClick={() => setPending({ row: r, action: "delete" })}>
                       Delete
                     </button>
                     ) : null}
@@ -355,13 +387,21 @@ export default function CollectionsPage() {
 
       <ConfirmDialog
         open={Boolean(pending)}
-        title="Delete this collection?"
-        body={pending ? `${pending.title.en} will be removed from the store. Products stay in the catalog.` : ""}
-        confirmLabel="Delete"
-        danger
+        title={pending?.action === "delete" ? "Delete this collection?" : "Make this collection inactive?"}
+        body={
+          pending?.action === "delete"
+            ? `${pending.row.title.en} will be removed from the store. Products stay in the catalog.`
+            : `${pending?.row.title.en} will be hidden from the store. You can activate it again later.`
+        }
+        confirmLabel={pending?.action === "delete" ? "Delete" : "Set inactive"}
+        danger={pending?.action === "delete"}
         busy={busy}
         onCancel={() => setPending(null)}
-        onConfirm={() => void remove()}
+        onConfirm={() => {
+          if (!pending) return;
+          if (pending.action === "delete") void remove();
+          else void setActive(pending.row, false);
+        }}
       />
     </div>
   );

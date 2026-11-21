@@ -1,5 +1,6 @@
 import { connectDb } from "@/server/db/connect";
 import { getSetting, setSetting } from "@/server/models/setting";
+import { SHIPPING_DEFAULT } from "@/content/geo-pk";
 
 export const STORE_DEFAULTS = {
   name: "Agile Sole",
@@ -12,7 +13,77 @@ export const STORE_DEFAULTS = {
   maxCod: 50000,
   minOrder: 0,
   highValue: 15000,
+  shippingAlwaysFree: false,
+  shippingFee: SHIPPING_DEFAULT.fee,
+  shippingFreeOver: SHIPPING_DEFAULT.freeOver,
 };
+
+export type StoreSettings = typeof STORE_DEFAULTS;
+
+export type ShippingMeta = {
+  id: string;
+  name: string;
+  fee: number;
+  eta: string;
+  freeOver: number;
+};
+
+function money(value: unknown, fallback: number) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return Math.round(n);
+}
+
+export function shippingFromStore(store: Partial<StoreSettings> = {}) {
+  const alwaysFree = Boolean(store.shippingAlwaysFree);
+  const fee = money(store.shippingFee, STORE_DEFAULTS.shippingFee);
+  const freeOver = money(store.shippingFreeOver, STORE_DEFAULTS.shippingFreeOver);
+  return {
+    alwaysFree,
+    fee,
+    freeOver,
+    meta: {
+      id: SHIPPING_DEFAULT.id,
+      name: alwaysFree || fee === 0 ? "Free shipping" : SHIPPING_DEFAULT.name,
+      fee: alwaysFree ? 0 : fee,
+      eta: SHIPPING_DEFAULT.eta,
+      freeOver: alwaysFree ? 0 : freeOver,
+    } satisfies ShippingMeta,
+  };
+}
+
+export function shippingFeeForSubtotal(subtotal: number, store: Partial<StoreSettings> = {}) {
+  if (subtotal <= 0) return 0;
+  const cfg = shippingFromStore(store);
+  if (cfg.alwaysFree || cfg.fee === 0) return 0;
+  if (cfg.freeOver > 0 && subtotal >= cfg.freeOver) return 0;
+  return cfg.fee;
+}
+
+export async function getShippingMeta() {
+  const { store } = await getAllSettings();
+  return shippingFromStore(store).meta;
+}
+
+export async function quoteShipping(subtotal: number) {
+  const { store } = await getAllSettings();
+  return shippingFeeForSubtotal(subtotal, store);
+}
+
+export function shippingPolicyCopy(locale: string, store: Partial<StoreSettings> = {}) {
+  const cfg = shippingFromStore(store);
+  if (cfg.alwaysFree || cfg.fee === 0) {
+    return locale === "ur" ? "ڈیلیوری ہر آرڈر پر مفت ہے۔" : "Delivery is free on every order.";
+  }
+  if (cfg.freeOver > 0) {
+    return locale === "ur"
+      ? `معیاری کیش آن ڈیلیوری شپنگ ${cfg.fee} روپے، ${cfg.freeOver} سے اوپر مفت۔`
+      : `Standard cash-on-delivery shipping is Rs ${cfg.fee}, and free over Rs ${cfg.freeOver.toLocaleString("en-PK")}.`;
+  }
+  return locale === "ur"
+    ? `معیاری کیش آن ڈیلیوری شپنگ ${cfg.fee} روپے ہے۔`
+    : `Standard cash-on-delivery shipping is Rs ${cfg.fee}.`;
+}
 
 export const ANALYTICS_DEFAULTS = {
   ga4Id: "",
@@ -65,6 +136,9 @@ export async function saveAllSettings(input: {
   if (typeof nextStore.city === "string") {
     nextStore.city = nextStore.city.trim() || STORE_DEFAULTS.city;
   }
+  nextStore.shippingAlwaysFree = Boolean(nextStore.shippingAlwaysFree);
+  nextStore.shippingFee = money(nextStore.shippingFee, STORE_DEFAULTS.shippingFee);
+  nextStore.shippingFreeOver = money(nextStore.shippingFreeOver, STORE_DEFAULTS.shippingFreeOver);
   const store = await setSetting("store", nextStore);
   const analytics = await setSetting("analytics", { ...current.analytics, ...input.analytics });
   const payments = await setSetting("payments", { ...current.payments, ...input.payments });

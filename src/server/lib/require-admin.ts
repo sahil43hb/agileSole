@@ -15,7 +15,11 @@ export async function getAdminStaff() {
 
 export async function requireAdminPage() {
   const staff = await getAdminStaff();
-  if (!staff) redirect("/admin/login");
+  if (!staff) {
+    // Drop a stale cookie (e.g. staff re-seeded) via the logout route so we
+    // never bounce login ↔ dashboard.
+    redirect("/api/v1/auth/admin/logout");
+  }
   return staff;
 }
 

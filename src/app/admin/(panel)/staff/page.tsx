@@ -26,7 +26,7 @@ import { AppSelect } from "@/components/ui/app-select";
 import { SwitchTrack } from "@/components/ui/switch";
 import { toast, toastApiError, toastFromResponse } from "@/components/ui/toast";
 import { BusyLabel } from "@/components/ui/spinner";
-import { useCan } from "@/components/admin/access";
+import { useAdminAccess, useCan } from "@/components/admin/access";
 
 type Staff = {
   id: string;
@@ -37,6 +37,7 @@ type Staff = {
   roleName: string;
   isActive: boolean;
   lastLoginAt?: string;
+  locked?: boolean;
 };
 
 type RoleOpt = { id: string; name: string; slug: string; isSystem?: boolean };
@@ -46,15 +47,20 @@ const field =
 
 const emptyForm = { name: "", email: "", password: "", roleId: "", isActive: true };
 
+function isLocked(r: Staff) {
+  return Boolean(r.locked) || r.email.toLowerCase() === "agilesole@gmail.com";
+}
+
 export default function StaffPage() {
   const access = useCan("staff");
+  const { staff: me } = useAdminAccess();
   const [rows, setRows] = useState<Staff[]>([]);
   const [roles, setRoles] = useState<RoleOpt[]>([]);
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [editing, setEditing] = useState<Staff | "new" | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [pending, setPending] = useState<Staff | null>(null);
+  const [pending, setPending] = useState<{ row: Staff; action: "status" | "delete" } | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function load() {
@@ -116,6 +122,7 @@ export default function StaffPage() {
   }
 
   async function toggleActive(r: Staff) {
+    if (isLocked(r)) return;
     setBusy(true);
     const res = await fetch(`/api/v1/admin/staff/${r.id}`, {
       method: "PATCH",
@@ -124,6 +131,20 @@ export default function StaffPage() {
     });
     setBusy(false);
     const result = await toastFromResponse(res, "Could not update staff", r.isActive ? "Staff deactivated" : "Staff activated");
+    if (!result.ok) {
+      setPending(null);
+      return;
+    }
+    setPending(null);
+    await load();
+  }
+
+  async function remove() {
+    if (!pending) return;
+    setBusy(true);
+    const res = await fetch(`/api/v1/admin/staff/${pending.row.id}`, { method: "DELETE" });
+    setBusy(false);
+    const result = await toastFromResponse(res, "Could not delete staff", "Staff deleted");
     if (!result.ok) {
       setPending(null);
       return;
@@ -197,11 +218,20 @@ export default function StaffPage() {
                   <StatusBadge value={r.isActive ? "active" : "inactive"} />
                 </td>
                 <td>
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-nowrap items-center justify-end gap-1.5">
                     {access.update ? <RowEditButton onClick={() => openEdit(r)} /> : null}
-                    {access.update ? (
-                      <button type="button" className={r.isActive ? rowBtnDanger : rowBtn} onClick={() => setPending(r)}>
+                    {access.update && !isLocked(r) ? (
+                      <button
+                        type="button"
+                        className={r.isActive ? rowBtn : rowBtn}
+                        onClick={() => setPending({ row: r, action: "status" })}
+                      >
                         {r.isActive ? "Deactivate" : "Activate"}
+                      </button>
+                    ) : null}
+                    {access.delete && !isLocked(r) && me?.id !== r.id ? (
+                      <button type="button" className={rowBtnDanger} onClick={() => setPending({ row: r, action: "delete" })}>
+                        Delete
                       </button>
                     ) : null}
                   </div>
@@ -228,7 +258,14 @@ export default function StaffPage() {
               </label>
               <label className="block text-[13px] font-medium text-ink-muted">
                 Email
-                <input required type="email" className={field} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <input
+                  required
+                  type="email"
+                  className={field}
+                  value={form.email}
+                  disabled={editing !== "new" && isLocked(editing)}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
               </label>
               <label className="block text-[13px] font-medium text-ink-muted">
                 Password {editing === "new" ? "(8+)" : "(leave blank to keep)"}
@@ -249,14 +286,20 @@ export default function StaffPage() {
                   options={roles.map((r) => ({ value: r.id, label: r.name }))}
                 />
               </label>
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, isActive: !form.isActive })}
-                className={`flex h-11 w-full items-center justify-between rounded-xl border px-3.5 text-sm ${form.isActive ? "border-brand bg-brand-mist text-brand-dark" : "border-[#e7ebe8] bg-[#f7f8f7] text-ink-muted"}`}
-              >
-                {form.isActive ? "Can sign in" : "Deactivated"}
-                <SwitchTrack on={form.isActive} />
-              </button>
+              {editing !== "new" && isLocked(editing) ? (
+                <p className="rounded-xl bg-[#f7f8f7] px-3.5 py-2.5 text-sm text-ink-muted">
+                  This is the store owner account. It stays active and cannot be deleted.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, isActive: !form.isActive })}
+                  className={`flex h-11 w-full items-center justify-between rounded-xl border px-3.5 text-sm ${form.isActive ? "border-brand bg-brand-mist text-brand-dark" : "border-[#e7ebe8] bg-[#f7f8f7] text-ink-muted"}`}
+                >
+                  {form.isActive ? "Can sign in" : "Deactivated"}
+                  <SwitchTrack on={form.isActive} />
+                </button>
+              )}
             </AdminModalBody>
             <AdminModalFooter>
               <button type="button" onClick={() => setEditing(null)} className={modalBtnSecondary}>
@@ -274,13 +317,29 @@ export default function StaffPage() {
 
       <ConfirmDialog
         open={Boolean(pending)}
-        title={pending?.isActive ? "Deactivate this person?" : "Activate this person?"}
-        body={pending ? `${pending.name} ${pending.isActive ? "will not be able to sign in." : "will be able to sign in again."}` : ""}
-        confirmLabel={pending?.isActive ? "Deactivate" : "Activate"}
-        danger={Boolean(pending?.isActive)}
+        title={
+          pending?.action === "delete"
+            ? "Delete this person?"
+            : pending?.row.isActive
+              ? "Deactivate this person?"
+              : "Activate this person?"
+        }
+        body={
+          pending?.action === "delete"
+            ? `${pending.row.name} will be removed and will no longer be able to sign in.`
+            : pending
+              ? `${pending.row.name} ${pending.row.isActive ? "will not be able to sign in." : "will be able to sign in again."}`
+              : ""
+        }
+        confirmLabel={pending?.action === "delete" ? "Delete" : pending?.row.isActive ? "Deactivate" : "Activate"}
+        danger={pending?.action === "delete" || Boolean(pending?.row.isActive)}
         busy={busy}
         onCancel={() => setPending(null)}
-        onConfirm={() => pending && void toggleActive(pending)}
+        onConfirm={() => {
+          if (!pending) return;
+          if (pending.action === "delete") void remove();
+          else void toggleActive(pending.row);
+        }}
       />
     </div>
   );

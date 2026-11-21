@@ -1,9 +1,15 @@
 import { connectDb } from "@/server/db/connect";
 import { Cart, Customer, Order, Product, Ticket } from "@/server/models";
 import { bumpDiscountUse, quoteDiscount } from "./discount.service";
+import { peekCustomerId } from "@/server/lib/session";
 import { nextOrderNumber } from "@/server/models/counter";
 import { asDoc } from "@/server/lib/lean";
-import { GEO_PK, SHIPPING_DEFAULT } from "@/content/geo-pk";
+import { GEO_PK } from "@/content/geo-pk";
+import {
+  getAllSettings,
+  getShippingMeta,
+  shippingFeeForSubtotal,
+} from "@/server/modules/admin/settings.service";
 import { normalizePkPhone, pkPhoneField } from "@/shared/phone";
 import { consumeCheckoutOtp } from "@/server/modules/auth/customer-otp.service";
 import { getCart, hydrateSku, clearCart } from "./cart.service";
@@ -37,14 +43,14 @@ export const placeInput = z.object({
   address: addressSchema,
 });
 
-export function geoPayload() {
+export async function geoPayload() {
   return {
     country: "PK",
     provinces: GEO_PK.map((p) => ({
       name: p.province,
       cities: [...p.cities],
     })),
-    shipping: SHIPPING_DEFAULT,
+    shipping: await getShippingMeta(),
   };
 }
 
@@ -134,6 +140,13 @@ export async function placeOrder(guestId: string, raw: unknown, opts?: { skipOtp
   if (customerBlocked) throw new Error("This phone cannot place orders. Contact the shop.");
 
   const cart = await buildLines(guestId, input.locale || "en");
+  if (cart.promoCode) {
+    const sessionId = await peekCustomerId();
+    await quoteDiscount(cart.promoCode, cart.subtotal, cart.shipping, {
+      customerId: sessionId,
+      requireCustomer: true,
+    });
+  }
   const subtotal = cart.subtotal;
   const shipping = cart.shipping;
   const discount = cart.discount || 0;
@@ -156,6 +169,7 @@ export async function placeOrder(guestId: string, raw: unknown, opts?: { skipOtp
   }
 
   const number = await nextOrderNumber();
+  const shippingMeta = await getShippingMeta();
   const order = await Order.create({
     number,
     guestId,
@@ -177,12 +191,7 @@ export async function placeOrder(guestId: string, raw: unknown, opts?: { skipOtp
     amounts: { subtotal, shipping, discount, tax: 0, total, currency: "PKR" },
     discountCode: cart.promoCode || "",
     shippingAddress: { ...input.address, phone, country: "PK" },
-    shippingMethod: {
-      id: SHIPPING_DEFAULT.id,
-      name: SHIPPING_DEFAULT.name,
-      fee: shipping,
-      eta: SHIPPING_DEFAULT.eta,
-    },
+    shippingMethod: { id: shippingMeta.id, name: shippingMeta.name, fee: shipping, eta: shippingMeta.eta },
     payment: { method: "cod", status: "unpaid", collectAmount: total },
     notes: input.notes,
     deliveryInstructions: input.deliveryInstructions,
@@ -282,12 +291,21 @@ export async function placeManualOrder(staffId: string, raw: unknown) {
 
 export const EDITABLE_ITEM_STATUSES = ["pending_confirmation", "confirmed", "unreachable", "on_hold"] as const;
 
-async function recalcOrderAmounts(subtotal: number, discountCode: string, fallbackDiscount: number) {
-  let shipping = subtotal >= SHIPPING_DEFAULT.freeOver || subtotal === 0 ? 0 : SHIPPING_DEFAULT.fee;
+async function recalcOrderAmounts(
+  subtotal: number,
+  discountCode: string,
+  fallbackDiscount: number,
+  opts?: { customerId?: string; excludeOrderId?: string },
+) {
+  const { store } = await getAllSettings();
+  let shipping = shippingFeeForSubtotal(subtotal, store);
   let discount = Math.min(Math.max(0, fallbackDiscount || 0), subtotal);
   if (discountCode && subtotal > 0) {
     try {
-      const quote = await quoteDiscount(discountCode, subtotal, shipping);
+      const quote = await quoteDiscount(discountCode, subtotal, shipping, {
+        customerId: opts?.customerId,
+        excludeOrderId: opts?.excludeOrderId,
+      });
       discount = quote.discount;
       shipping = quote.shipping === 0 || quote.type === "free_shipping" ? 0 : shipping;
     } catch {
@@ -364,7 +382,10 @@ export async function updateOrderItems(id: string, raw: unknown, staffId: string
   }
 
   const subtotal = newItems.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const amounts = await recalcOrderAmounts(subtotal, order.discountCode || "", order.amounts?.discount || 0);
+  const amounts = await recalcOrderAmounts(subtotal, order.discountCode || "", order.amounts?.discount || 0, {
+    customerId: order.customerId || undefined,
+    excludeOrderId: String(order._id),
+  });
 
   order.set("items", newItems);
   order.amounts.subtotal = amounts.subtotal;

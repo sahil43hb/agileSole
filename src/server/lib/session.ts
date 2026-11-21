@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import { ADMIN_COOKIE, CUSTOMER_COOKIE } from "@/shared/constants";
 
@@ -67,6 +68,13 @@ export async function verifyCustomerToken(token: string): Promise<CustomerToken 
   } catch {
     return null;
   }
+}
+
+export async function peekCustomerId() {
+  const token = (await cookies()).get(CUSTOMER_COOKIE)?.value;
+  if (!token) return null;
+  const session = await verifyCustomerToken(token);
+  return session?.sub || null;
 }
 
 export const cookieOptions = {

@@ -2,8 +2,9 @@ import { connectDb } from "@/server/db/connect";
 import { Cart, Product } from "@/server/models";
 import { quoteDiscount } from "./discount.service";
 import { asDoc } from "@/server/lib/lean";
-import { SHIPPING_DEFAULT } from "@/content/geo-pk";
+import { getAllSettings, shippingFeeForSubtotal, shippingFromStore } from "@/server/modules/admin/settings.service";
 import { pickLocale } from "@/server/lib/localized";
+import { peekCustomerId } from "@/server/lib/session";
 
 export type CartLine = {
   sku: string;
@@ -68,17 +69,22 @@ export async function getCart(guestId: string, locale = "en") {
     });
   }
   const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
-  let shipping = subtotal >= SHIPPING_DEFAULT.freeOver || subtotal === 0 ? 0 : SHIPPING_DEFAULT.fee;
+  const { store } = await getAllSettings();
+  const shippingMeta = shippingFromStore(store).meta;
+  let shipping = shippingFeeForSubtotal(subtotal, store);
   let discount = 0;
-  const promoCode = String((row as { promoCode?: string }).promoCode || "");
+  let promoCode = String((row as { promoCode?: string }).promoCode || "");
   if (promoCode && subtotal > 0) {
     try {
-      const quote = await quoteDiscount(promoCode, subtotal, shipping);
+      const customerId = await peekCustomerId();
+      const quote = await quoteDiscount(promoCode, subtotal, shipping, { customerId, requireCustomer: true });
       discount = quote.discount;
       shipping = quote.shipping === 0 ? 0 : shipping;
       if (quote.type === "free_shipping") shipping = 0;
     } catch {
       discount = 0;
+      promoCode = "";
+      await Cart.updateOne({ guestId }, { $set: { promoCode: "" } });
     }
   }
   return {
@@ -89,7 +95,7 @@ export async function getCart(guestId: string, locale = "en") {
     promoCode: promoCode || "",
     shipping,
     total: Math.max(0, subtotal - discount) + shipping,
-    shippingMeta: SHIPPING_DEFAULT,
+    shippingMeta,
   };
 }
 
@@ -128,9 +134,11 @@ export async function clearCart(guestId: string) {
 }
 
 export async function applyCartPromo(guestId: string, code: string, locale = "en") {
+  const customerId = await peekCustomerId();
+  if (!customerId) throw new Error("Sign in to apply a promo code");
   const cart = await getCart(guestId, locale);
   if (!cart.lines.length) throw new Error("Add items to the bag before applying a code");
-  const quote = await quoteDiscount(code, cart.subtotal, cart.shipping);
+  const quote = await quoteDiscount(code, cart.subtotal, cart.shipping, { customerId, requireCustomer: true });
   await Cart.updateOne({ guestId }, { $set: { promoCode: quote.code } }, { upsert: true });
   return getCart(guestId, locale);
 }

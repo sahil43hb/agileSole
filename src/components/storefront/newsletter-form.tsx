@@ -28,20 +28,26 @@ export function NewsletterForm({ dark = false }: { dark?: boolean }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+    <form onSubmit={onSubmit} className="mt-4 flex w-full min-w-0 max-w-full flex-col gap-2 sm:flex-row sm:items-center">
       <input
         type="email"
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder={t("email")}
-        className={`h-12 min-w-0 flex-1 rounded-full px-5 text-sm outline-none ${
+        autoComplete="email"
+        inputMode="email"
+        className={`box-border h-12 w-full min-w-0 max-w-full flex-1 appearance-none rounded-full px-4 text-base outline-none sm:px-5 sm:text-sm ${
           dark
-            ? "border border-white/15 bg-white/10 text-white placeholder:text-white/45 focus:border-white/40"
+            ? "border border-white/15 bg-white/10 text-white placeholder:text-white/45 focus:border-white/40 focus-visible:ring-offset-ink"
             : "border border-paper-line bg-paper placeholder:text-ink-faint focus:border-brand"
         }`}
       />
-      <button className="btn-primary inline-flex h-12 shrink-0 items-center justify-center rounded-full px-6 disabled:opacity-60" type="submit" disabled={busy}>
+      <button
+        className="btn-primary inline-flex h-12 w-full shrink-0 items-center justify-center rounded-full px-6 disabled:opacity-60 sm:w-auto"
+        type="submit"
+        disabled={busy}
+      >
         <BusyLabel loading={busy} label={t("joining")}>
           {t("join")}
         </BusyLabel>

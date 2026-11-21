@@ -1,6 +1,6 @@
 import { errorMessage, fail, fromError, ok } from "@/server/lib/api";
 import { requireAdminApi } from "@/server/lib/require-admin";
-import { deleteCollection, upsertCollection } from "@/server/modules/catalog/taxonomy.service";
+import { deleteCollection, setCollectionActive, upsertCollection } from "@/server/modules/catalog/taxonomy.service";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -9,7 +9,11 @@ export async function PATCH(request: Request, ctx: Ctx) {
   if (gate.response) return gate.response;
   try {
     const { id } = await ctx.params;
-    return ok({ collection: await upsertCollection(await request.json(), id) });
+    const body = await request.json();
+    if (body && typeof body.isActive === "boolean" && Object.keys(body).length === 1) {
+      return ok({ collection: await setCollectionActive(id, body.isActive) });
+    }
+    return ok({ collection: await upsertCollection(body, id) });
   } catch (err) {
     const message = errorMessage(err, "Failed");
     return fail("VALIDATION", message, 422);

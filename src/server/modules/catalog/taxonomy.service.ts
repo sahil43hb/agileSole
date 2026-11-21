@@ -83,6 +83,14 @@ export async function upsertCategory(raw: unknown, id?: string) {
   return JSON.parse(JSON.stringify(created));
 }
 
+export async function setCategoryActive(id: string, isActive: boolean) {
+  await connectDb();
+  ttlDel("menu:", true);
+  const row = await Category.findByIdAndUpdate(id, { $set: { isActive } }, { new: true });
+  if (!row) throw new Error("Category not found");
+  return JSON.parse(JSON.stringify(row));
+}
+
 export async function deleteCategory(id: string) {
   await connectDb();
   const inUse = await Product.countDocuments({ categoryIds: id });
@@ -133,6 +141,13 @@ export async function upsertBrand(raw: unknown, id?: string) {
   return JSON.parse(JSON.stringify(await Brand.create({ ...input, slug })));
 }
 
+export async function setBrandActive(id: string, isActive: boolean) {
+  await connectDb();
+  const row = await Brand.findByIdAndUpdate(id, { $set: { isActive } }, { new: true });
+  if (!row) throw new Error("Brand not found");
+  return JSON.parse(JSON.stringify(row));
+}
+
 export async function deleteBrand(id: string) {
   await connectDb();
   const inUse = await Product.countDocuments({ brandId: id });
@@ -179,6 +194,14 @@ export async function upsertCollection(raw: unknown, id?: string) {
     return JSON.parse(JSON.stringify(row));
   }
   return JSON.parse(JSON.stringify(await Collection.create({ ...input, slug })));
+}
+
+export async function setCollectionActive(id: string, isActive: boolean) {
+  await connectDb();
+  ttlDel("menu:", true);
+  const row = await Collection.findByIdAndUpdate(id, { $set: { isActive } }, { new: true });
+  if (!row) throw new Error("Collection not found");
+  return JSON.parse(JSON.stringify(row));
 }
 
 export async function deleteCollection(id: string) {

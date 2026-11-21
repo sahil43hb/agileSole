@@ -31,10 +31,10 @@ export default async function CategoryPage({
     ...filters,
   });
   const all = await listCategories(locale);
-  const children = all.filter((c) => c.parentId === category.id);
+  const children = all.filter((c) => c.parentId === category.id && c.isActive !== false);
   const parent = category.parentId ? all.find((c) => c.id === category.parentId) : null;
   const styleSiblings = parent
-    ? all.filter((c) => c.parentId === parent.id)
+    ? all.filter((c) => c.parentId === parent.id && c.isActive !== false)
     : children;
   const parentPath = parent ? `/c/${slug.slice(0, -1).join("/")}` : `/c/${slug.join("/")}`;
   const crumbs = [

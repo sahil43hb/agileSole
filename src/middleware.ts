@@ -30,12 +30,9 @@ export default function middleware(request: NextRequest) {
       url.searchParams.set("from", pathname);
       return NextResponse.redirect(url);
     }
-    if (pathname === "/admin/login" && token) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/admin";
-      url.search = "";
-      return NextResponse.redirect(url);
-    }
+    // Do not bounce /admin/login → /admin just because a cookie exists.
+    // After a DB wipe the JWT can still be present while the staff row is gone,
+    // which used to loop: login → /admin → requireAdmin → login.
     const res = NextResponse.next();
     res.headers.set("x-admin-path", pathname);
     return res;

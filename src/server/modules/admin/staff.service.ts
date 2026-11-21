@@ -12,6 +12,14 @@ const staffInput = z.object({
   isActive: z.boolean().optional(),
 });
 
+export function seedAdminEmail() {
+  return (process.env.SEED_ADMIN_EMAIL || "agilesole@gmail.com").toLowerCase();
+}
+
+export function isSeedOwnerAccount(email?: string | null) {
+  return (email || "").toLowerCase() === seedAdminEmail();
+}
+
 async function resolveRole(roleId: string) {
   const role = await Role.findById(roleId);
   if (!role) throw new Error("Choose a valid role");
@@ -35,6 +43,7 @@ export async function listStaff() {
       roleName: role?.name || r.role,
       isActive: r.isActive,
       lastLoginAt: r.lastLoginAt,
+      locked: isSeedOwnerAccount(r.email),
     };
   });
 }
@@ -48,6 +57,9 @@ export async function upsertStaff(raw: unknown, id?: string, actor?: { isOwner?:
   }
   if (id && input.isActive === false) {
     const current = await Staff.findById(id);
+    if (current && isSeedOwnerAccount(current.email)) {
+      throw new Error("The store owner account cannot be deactivated");
+    }
     const currentSlug = current ? (await Role.findById(current.roleId))?.slug || current.role : "";
     if (currentSlug === "owner" || currentSlug === "super_admin") {
       const owners = await Staff.countDocuments({ isActive: true, $or: [{ role: "owner" }, { role: "super_admin" }] });
@@ -88,6 +100,22 @@ export async function upsertStaff(raw: unknown, id?: string, actor?: { isOwner?:
     roleName: role.name,
     isActive: created.isActive,
   };
+}
+
+export async function deleteStaff(id: string, actorId: string) {
+  await connectDb();
+  if (actorId === id) throw new Error("You cannot delete your own account");
+  const row = await Staff.findById(id);
+  if (!row) throw new Error("Staff not found");
+  if (isSeedOwnerAccount(row.email)) throw new Error("The store owner account cannot be deleted");
+  const slug = (await Role.findById(row.roleId))?.slug || row.role;
+  if (slug === "owner" || slug === "super_admin") {
+    const owners = await Staff.countDocuments({ $or: [{ role: "owner" }, { role: "super_admin" }] });
+    if (owners <= 1) throw new Error("Keep at least one owner");
+  }
+  await Staff.deleteOne({ _id: id });
+  ttlDel(`staff:${id}`);
+  return { deleted: true };
 }
 
 export async function updateOwnProfile(
