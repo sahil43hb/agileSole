@@ -5,6 +5,12 @@ import { getAllSettings, shippingPolicyCopy } from "@/server/modules/admin/setti
 import { Breadcrumbs } from "./breadcrumbs";
 import { ContentShell } from "./content-hero";
 
+type LegalCopy = {
+  title: string;
+  intro: string;
+  sections: Array<{ heading: string; body: string }>;
+};
+
 export async function LegalPage({
   locale,
   kind,
@@ -16,16 +22,18 @@ export async function LegalPage({
   const n = await getTranslations("nav");
   const t = await getTranslations("pages");
   const f = await getTranslations("footer");
-  let copy = locale === "ur" ? LEGAL[kind].ur : LEGAL[kind].en;
+  const source = locale === "ur" ? LEGAL[kind].ur : LEGAL[kind].en;
+  const copy: LegalCopy = {
+    title: source.title,
+    intro: source.intro,
+    sections: source.sections.map((section) => ({ ...section })),
+  };
   if (kind === "shipping") {
     const { store } = await getAllSettings();
     const body = shippingPolicyCopy(locale, store);
-    copy = {
-      ...copy,
-      sections: copy.sections.map((section) =>
-        section.heading === "COD shipping" || section.heading === "کیش شپنگ" ? { ...section, body } : section,
-      ),
-    };
+    copy.sections = copy.sections.map((section) =>
+      section.heading === "COD shipping" || section.heading === "کیش شپنگ" ? { ...section, body } : section,
+    );
   }
 
   const related = [
