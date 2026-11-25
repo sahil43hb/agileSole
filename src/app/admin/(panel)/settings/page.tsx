@@ -2,13 +2,15 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ImagePlus, X } from "lucide-react";
+import { Check, ImagePlus, Plus, Trash2, X } from "lucide-react";
 import { AdminHeaderAction, AdminPageHeader } from "@/components/admin/ui";
 import { Switch } from "@/components/ui/switch";
 import { LOGO_SRC } from "@/components/brand/logo";
 import { notifyLogoChanged } from "@/lib/brand-icon";
 import { toast, toastApiError } from "@/components/ui/toast";
 import { useCan } from "@/components/admin/access";
+import { PRODUCT_TYPE_DEFAULTS, type ProductTypeSetting } from "@/shared/product-types";
+import { slugify } from "@/shared/money";
 
 const PAYMENT_FLAGS = [
   { key: "cod", label: "Cash on delivery", hint: "Live now — shoppers pay when the pair arrives.", locked: true },
@@ -74,6 +76,7 @@ export default function SettingsPage() {
     leopardApi: false,
     postex: false,
   });
+  const [productTypes, setProductTypes] = useState<ProductTypeSetting[]>(PRODUCT_TYPE_DEFAULTS);
   const [saved, setSaved] = useState("");
   const [busy, setBusy] = useState(false);
   const [logoError, setLogoError] = useState("");
@@ -87,6 +90,7 @@ export default function SettingsPage() {
         setAnalytics((s) => ({ ...s, ...j.data.analytics }));
         setPayments((s) => ({ ...s, ...j.data.payments }));
         setCouriers((s) => ({ ...s, ...j.data.couriers }));
+        if (j.data.catalog?.productTypes?.length) setProductTypes(j.data.catalog.productTypes);
       });
   }, []);
 
@@ -117,6 +121,7 @@ export default function SettingsPage() {
         analytics,
         payments: { ...payments, cod: true },
         couriers: { ...couriers, manual: true },
+        catalog: { productTypes },
       }),
     });
     const json = await res.json();
@@ -323,6 +328,101 @@ export default function SettingsPage() {
                 Meta
               </a>
             </p>
+          </section>
+
+          <section className={card}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold tracking-tight">Product types</h2>
+                <p className="mt-1 text-sm text-ink-muted">
+                  These appear on product create/edit, size charts, and shop filters. Add boots, heels, or anything else you sell.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-[var(--admin-line)] bg-white px-3 text-sm font-medium"
+                onClick={() =>
+                  setProductTypes((prev) => [...prev, { id: "", label: "", labelUr: "", openFootwear: false }])
+                }
+              >
+                <Plus className="h-4 w-4" />
+                Add type
+              </button>
+            </div>
+            <div className="space-y-3">
+              {productTypes.map((row, i) => (
+                <div key={i} className="rounded-2xl border border-[#e7ebe8] bg-[#f7f8f7] p-3">
+                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_8rem_auto]">
+                    <label className={label}>
+                      Name
+                      <input
+                        className={`${field} mt-1`}
+                        value={row.label}
+                        placeholder="e.g. Boot"
+                        onChange={(e) => {
+                          const label = e.target.value;
+                          const next = [...productTypes];
+                          next[i] = { ...row, label, id: row.id || slugify(label) };
+                          setProductTypes(next);
+                        }}
+                        onBlur={() => {
+                          const next = [...productTypes];
+                          next[i] = { ...row, id: slugify(row.id || row.label) };
+                          setProductTypes(next);
+                        }}
+                      />
+                    </label>
+                    <label className={label}>
+                      Urdu
+                      <input
+                        dir="rtl"
+                        className={`${field} mt-1`}
+                        value={row.labelUr}
+                        onChange={(e) => {
+                          const next = [...productTypes];
+                          next[i] = { ...row, labelUr: e.target.value };
+                          setProductTypes(next);
+                        }}
+                      />
+                    </label>
+                    <label className={label}>
+                      Code
+                      <input
+                        className={`${field} mt-1 font-mono text-xs`}
+                        value={row.id}
+                        onChange={(e) => {
+                          const next = [...productTypes];
+                          next[i] = { ...row, id: slugify(e.target.value) };
+                          setProductTypes(next);
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="mt-7 flex h-11 w-11 items-center justify-center rounded-xl text-ink-faint hover:bg-white hover:text-red-700 disabled:opacity-30"
+                      disabled={productTypes.length <= 1}
+                      onClick={() => setProductTypes(productTypes.filter((_, j) => j !== i))}
+                      aria-label="Remove type"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <label className="mt-2 flex items-center gap-2 text-xs text-ink-muted">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-[#cfd6d1] text-brand"
+                      checked={row.openFootwear}
+                      onChange={(e) => {
+                        const next = [...productTypes];
+                        next[i] = { ...row, openFootwear: e.target.checked };
+                        setProductTypes(next);
+                      }}
+                    />
+                    Open footwear — use the sandal size chart
+                  </label>
+                </div>
+              ))}
+            </div>
           </section>
         </div>
 

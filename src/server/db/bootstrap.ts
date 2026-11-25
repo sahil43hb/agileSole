@@ -246,6 +246,18 @@ export async function seedDatabase() {
         maxCod: 200000,
       },
     },
+    {
+      key: "catalog",
+      value: {
+        productTypes: [
+          { id: "sneaker", label: "Sneaker", labelUr: "سنیکرز", openFootwear: false },
+          { id: "sandal", label: "Sandal", labelUr: "سینڈل", openFootwear: true },
+          { id: "slide", label: "Slide", labelUr: "سلائیڈ", openFootwear: true },
+          { id: "clog", label: "Clog", labelUr: "کلاگ", openFootwear: true },
+          { id: "slipper", label: "Slipper", labelUr: "سلپر", openFootwear: true },
+        ],
+      },
+    },
     { key: "maintenance", value: { enabled: false } },
     { key: "seed.version", value: SEED_VERSION },
   ]);

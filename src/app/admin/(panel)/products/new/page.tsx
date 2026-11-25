@@ -13,7 +13,7 @@ export default async function NewProductPage() {
     <ProductForm
       brands={brands.map((b) => ({ id: b.id, label: b.label }))}
       categories={categories.map((c) => ({ id: c.id, label: c.label, parentId: c.parentId }))}
-      sizeCharts={sizeCharts.map((c) => ({ code: c.code, title: c.title }))}
+      sizeCharts={sizeCharts.map((c) => ({ code: c.code, title: c.title, productType: c.productType, rows: c.rows }))}
     />
   );
 }

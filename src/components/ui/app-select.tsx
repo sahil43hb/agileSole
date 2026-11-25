@@ -185,7 +185,7 @@ export function AppSelect({
         ? createPortal(
             <div
               ref={menuRef}
-              style={{ top: pos.top, left: pos.left, width: pos.width, maxHeight: pos.maxHeight }}
+              style={{ position: "fixed", top: pos.top, left: pos.left, width: pos.width, maxHeight: pos.maxHeight }}
               className="fixed z-[320] flex flex-col overflow-hidden rounded-2xl border border-[#e7ebe8] bg-white py-1.5 shadow-[0_18px_50px_rgba(17,17,17,0.14)]"
               onKeyDown={onMenuKey}
             >

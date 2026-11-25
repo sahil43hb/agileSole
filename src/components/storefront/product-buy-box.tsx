@@ -4,8 +4,13 @@ import { useMemo, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { formatPkr } from "@/shared/money";
 import type { PublicProduct } from "@/server/modules/catalog/product.service";
+import { useStoreIdentity } from "@/components/store-identity";
+import { productTypeLabel } from "@/shared/product-types";
+import { useLocale } from "next-intl";
 
 export function ProductBuyBox({ product }: { product: PublicProduct }) {
+  const locale = useLocale();
+  const { productTypes } = useStoreIdentity();
   const [color, setColor] = useState(product.colors[0]?.name || "");
   const [size, setSize] = useState("");
 
@@ -13,7 +18,7 @@ export function ProductBuyBox({ product }: { product: PublicProduct }) {
     return product.variants.filter((v) => !color || v.color === color);
   }, [product.variants, color]);
 
-  const selected = product.variants.find((v) => v.color === color && v.sizeEu === size);
+  const selected = product.variants.find((v) => v.color === color && (v.size || v.sizeEu) === size);
   const price = selected?.price ?? product.price;
   const compareAt = selected?.compareAt ?? product.compareAt;
   const image = selected?.image || product.images[0];
@@ -29,7 +34,7 @@ export function ProductBuyBox({ product }: { product: PublicProduct }) {
       </div>
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-ink-muted">
-          {product.gender} · {product.type}
+          {product.gender} · {productTypeLabel(product.type, productTypes, locale)}
         </p>
         <h1 className="mt-2 text-3xl font-semibold">{product.title}</h1>
         <p className="mt-4 text-xl">
@@ -64,10 +69,10 @@ export function ProductBuyBox({ product }: { product: PublicProduct }) {
         ) : null}
 
         <div className="mt-6">
-          <p className="text-sm font-medium">EU size</p>
+          <p className="text-sm font-medium">{(product.sizeSystem || "eu").toUpperCase()} size</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {product.sizes.map((s) => {
-              const variant = product.variants.find((v) => v.sizeEu === s && (!color || v.color === color));
+              const variant = product.variants.find((v) => (v.size || v.sizeEu) === s && (!color || v.color === color));
               const available = (variant?.onHand || 0) > 0;
               return (
                 <button

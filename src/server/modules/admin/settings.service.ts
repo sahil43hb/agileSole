@@ -1,6 +1,7 @@
 import { connectDb } from "@/server/db/connect";
 import { getSetting, setSetting } from "@/server/models/setting";
 import { SHIPPING_DEFAULT } from "@/content/geo-pk";
+import { PRODUCT_TYPE_DEFAULTS, normalizeProductTypes, type ProductTypeSetting } from "@/shared/product-types";
 
 export const STORE_DEFAULTS = {
   name: "Agile Sole",
@@ -105,19 +106,33 @@ export const COURIERS_DEFAULTS = {
   postex: false,
 };
 
+export const CATALOG_DEFAULTS = {
+  productTypes: PRODUCT_TYPE_DEFAULTS,
+};
+
+export type CatalogSettings = {
+  productTypes: ProductTypeSetting[];
+};
+
 export async function getAllSettings() {
   await connectDb();
-  const [store, analytics, payments, couriers] = await Promise.all([
+  const [store, analytics, payments, couriers, catalogRaw] = await Promise.all([
     getSetting("store", STORE_DEFAULTS),
     getSetting("analytics", ANALYTICS_DEFAULTS),
     getSetting("payments", PAYMENTS_DEFAULTS),
     getSetting("couriers", COURIERS_DEFAULTS),
+    getSetting("catalog", CATALOG_DEFAULTS),
   ]);
   return {
     store: { ...STORE_DEFAULTS, ...store },
     analytics: { ...ANALYTICS_DEFAULTS, ...analytics },
     payments: { ...PAYMENTS_DEFAULTS, ...payments },
     couriers: { ...COURIERS_DEFAULTS, ...couriers },
+    catalog: {
+      productTypes: normalizeProductTypes(
+        (catalogRaw as { productTypes?: unknown } | null)?.productTypes ?? CATALOG_DEFAULTS.productTypes,
+      ),
+    },
   };
 }
 
@@ -126,6 +141,7 @@ export async function saveAllSettings(input: {
   analytics?: Partial<typeof ANALYTICS_DEFAULTS>;
   payments?: Partial<typeof PAYMENTS_DEFAULTS>;
   couriers?: Partial<typeof COURIERS_DEFAULTS>;
+  catalog?: Partial<CatalogSettings>;
 }) {
   await connectDb();
   const current = await getAllSettings();
@@ -143,7 +159,15 @@ export async function saveAllSettings(input: {
   const analytics = await setSetting("analytics", { ...current.analytics, ...input.analytics });
   const payments = await setSetting("payments", { ...current.payments, ...input.payments });
   const couriers = await setSetting("couriers", { ...current.couriers, ...input.couriers });
-  return { store, analytics, payments, couriers };
+  const catalog = await setSetting("catalog", {
+    productTypes: normalizeProductTypes(input.catalog?.productTypes ?? current.catalog.productTypes),
+  });
+  return { store, analytics, payments, couriers, catalog };
+}
+
+export async function getProductTypes() {
+  const { catalog } = await getAllSettings();
+  return catalog.productTypes;
 }
 
 export async function getPublicSettings() {
@@ -159,6 +183,7 @@ export async function getPublicSettings() {
       metaPixelId: all.analytics.metaPixelId,
       payments: all.payments,
       couriers: all.couriers,
+      productTypes: all.catalog.productTypes,
     };
   } catch {
     return {
@@ -171,6 +196,7 @@ export async function getPublicSettings() {
       metaPixelId: "",
       payments: PAYMENTS_DEFAULTS,
       couriers: COURIERS_DEFAULTS,
+      productTypes: PRODUCT_TYPE_DEFAULTS,
     };
   }
 }

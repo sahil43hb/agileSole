@@ -23,6 +23,10 @@ html:has(.admin-app) body {
   box-shadow: 0 0 0 2px rgba(31, 166, 74, 0.3);
 }
 
+.admin-main {
+  overflow-anchor: none;
+}
+
 .admin-main h1 {
   font-size: 1.5rem;
   font-weight: 600;

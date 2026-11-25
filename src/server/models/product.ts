@@ -37,6 +37,7 @@ const productSchema = new Schema(
     tags: [String],
     images: [String],
     sizeChartCode: String,
+    sizeSystem: { type: String, enum: ["eu", "pk", "uk", "us"], default: "pk" },
     material: String,
     status: { type: String, enum: ["draft", "active", "archived", "unlisted"], default: "active" },
     featured: { type: Boolean, default: false },
@@ -45,4 +46,7 @@ const productSchema = new Schema(
   { timestamps: true },
 );
 
-export const Product = models.Product || model("Product", productSchema);
+if (models.Product) {
+  delete models.Product;
+}
+export const Product = model("Product", productSchema);

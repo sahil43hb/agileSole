@@ -9,6 +9,7 @@ import { Star, Truck, ShieldCheck, RefreshCcw, Ruler, ArrowUpRight, ArrowRight }
 import { HomeFaq } from "@/components/storefront/home-faq";
 import { HomeTicker, Reveal, Stagger } from "@/components/storefront/home-motion";
 import type { PublicProduct } from "@/server/modules/catalog/product.service";
+import { PRODUCT_TYPE_DEFAULTS, type ProductTypeSetting } from "@/shared/product-types";
 
 const CATEGORY_ART: Record<string, string> = {
   men: "/catalog/lookbook-city.jpg",
@@ -17,44 +18,13 @@ const CATEGORY_ART: Record<string, string> = {
   comfort: "/catalog/lookbook-comfort.jpg",
 };
 
-const STYLE_ART = [
-  {
-    href: "/shop?type=sneaker",
-    en: "Sneakers",
-    ur: "سنیکرز",
-    note: "Street & everyday",
-    noteUr: "سڑک اور روزمرہ",
-    image: "/catalog/style-sneakers.jpg",
-    focus: "object-center",
-  },
-  {
-    href: "/shop?type=sandal",
-    en: "Sandals",
-    ur: "سینڈل",
-    note: "All-day straps",
-    noteUr: "پورا دن آرام",
-    image: "/catalog/lookbook-comfort.jpg",
-    focus: "object-[center_55%]",
-  },
-  {
-    href: "/shop?type=slide",
-    en: "Slides",
-    ur: "سلائیڈ",
-    note: "House comfort",
-    noteUr: "گھر کا آرام",
-    image: "/catalog/style-slides.jpg",
-    focus: "object-center",
-  },
-  {
-    href: "/c/kids",
-    en: "Kids",
-    ur: "بچے",
-    note: "Play-ready pairs",
-    noteUr: "کھیل کی جوڑیاں",
-    image: "/catalog/hero-family.jpg",
-    focus: "object-[center_28%]",
-  },
-] as const;
+const TYPE_ART: Record<string, { image: string; focus: string; note: string; noteUr: string }> = {
+  sneaker: { image: "/catalog/style-sneakers.jpg", focus: "object-center", note: "Street & everyday", noteUr: "سڑک اور روزمرہ" },
+  sandal: { image: "/catalog/lookbook-comfort.jpg", focus: "object-[center_55%]", note: "All-day straps", noteUr: "پورا دن آرام" },
+  slide: { image: "/catalog/style-slides.jpg", focus: "object-center", note: "House comfort", noteUr: "گھر کا آرام" },
+  clog: { image: "/catalog/lookbook-comfort.jpg", focus: "object-center", note: "Easy on", noteUr: "آسان پہننا" },
+  slipper: { image: "/catalog/lookbook-comfort.jpg", focus: "object-center", note: "House comfort", noteUr: "گھر کا آرام" },
+};
 
 type Cat = { id: string; slug: string; label: string };
 type Review = { id: string; body: string; authorName: string; rating: number };
@@ -69,6 +39,7 @@ export function HomeView({
   bestsellers,
   reviews,
   faqs,
+  productTypes = PRODUCT_TYPE_DEFAULTS,
 }: {
   locale: string;
   t: {
@@ -90,8 +61,23 @@ export function HomeView({
   bestsellers: PublicProduct[];
   reviews: Review[];
   faqs: { q: string; a: string }[];
+  productTypes?: ProductTypeSetting[];
 }) {
   const ur = locale === "ur";
+  const styleTiles = (productTypes.length ? productTypes : PRODUCT_TYPE_DEFAULTS).slice(0, 4).map((item) => {
+    const art = TYPE_ART[item.id] || {
+      image: "/catalog/lookbook-city.jpg",
+      focus: "object-center",
+      note: "From the shop",
+      noteUr: "دکان سے",
+    };
+    return {
+      href: `/shop?type=${item.id}`,
+      en: item.label,
+      ur: item.labelUr || item.label,
+      ...art,
+    };
+  });
   const trust = [
     { icon: ShieldCheck, label: t.trust.cod, hint: ur ? "ادائیگی ڈلیوری پر" : "Pay when it arrives" },
     { icon: Truck, label: t.trust.ship, hint: ur ? "2–5 دن" : "Typically 2–5 days" },
@@ -228,7 +214,7 @@ export function HomeView({
             />
           </Reveal>
           <Stagger className="mt-8 grid w-full grid-cols-2 gap-3 md:grid-cols-4 md:gap-4" step={90}>
-            {STYLE_ART.map((s) => (
+            {styleTiles.map((s) => (
               <Link
                 key={s.href}
                 href={s.href}

@@ -5,6 +5,7 @@ import { Category, Product } from "@/server/models";
 import { pickLocale } from "@/server/lib/localized";
 import { slugify } from "@/shared/money";
 import { asDoc } from "@/server/lib/lean";
+import { displaySize, parseSizeSystem, sortSizeValues, variantMatchesSize } from "@/shared/size-system";
 
 const loc = z.object({ en: z.string().default(""), ur: z.string().default("") });
 
@@ -41,6 +42,7 @@ export const productInputSchema = z.object({
   tags: z.array(z.string()).optional(),
   images: z.array(z.string()).optional(),
   sizeChartCode: z.string().optional().nullable(),
+  sizeSystem: z.enum(["eu", "pk", "uk", "us"]).optional(),
   material: z.string().optional(),
   status: z.enum(["draft", "active", "archived", "unlisted"]).default("active"),
   featured: z.boolean().optional(),
@@ -57,6 +59,7 @@ export type PublicProduct = {
   fitNote: string;
   material?: string;
   sizeChartCode?: string;
+  sizeSystem: "eu" | "pk" | "uk" | "us";
   images: string[];
   price: number;
   compareAt?: number;
@@ -70,7 +73,11 @@ export type PublicProduct = {
     sku: string;
     color?: string;
     colorHex?: string;
+    size?: string;
     sizeEu?: string;
+    sizePk?: string;
+    sizeUk?: string;
+    sizeUs?: string;
     price: number;
     compareAt?: number;
     image?: string;
@@ -97,7 +104,24 @@ function toPublic(doc: Record<string, unknown>, locale: string): PublicProduct {
         ]),
     ).values(),
   ];
-  const sizes = [...new Set(active.map((v) => v.sizeEu).filter(Boolean).map(String))];
+  const sizeSystem = parseSizeSystem(doc.sizeSystem);
+  const sizes = [
+    ...new Set(
+      active
+        .map((v) =>
+          displaySize(
+            {
+              sizeEu: v.sizeEu ? String(v.sizeEu) : undefined,
+              sizePk: v.sizePk ? String(v.sizePk) : undefined,
+              sizeUk: v.sizeUk ? String(v.sizeUk) : undefined,
+              sizeUs: v.sizeUs ? String(v.sizeUs) : undefined,
+            },
+            sizeSystem,
+          ),
+        )
+        .filter(Boolean),
+    ),
+  ].sort(sortSizeValues);
   const images = ((doc.images as string[]) || []).filter(Boolean);
   const variantImages = active.map((v) => v.image).filter(Boolean).map(String);
   const gallery = [...new Set([...images, ...variantImages])];
@@ -117,6 +141,7 @@ function toPublic(doc: Record<string, unknown>, locale: string): PublicProduct {
     fitNote: pickLocale(doc.fitNote as { en: string; ur: string } | undefined, locale),
     material: doc.material ? String(doc.material) : undefined,
     sizeChartCode: doc.sizeChartCode ? String(doc.sizeChartCode) : undefined,
+    sizeSystem,
     images: gallery,
     price,
     compareAt,
@@ -125,17 +150,26 @@ function toPublic(doc: Record<string, unknown>, locale: string): PublicProduct {
     percentOff,
     colors,
     sizes,
-    variants: active.map((v) => ({
-      id: String((v._id as { toString(): string })?.toString?.() || v.sku),
-      sku: String(v.sku),
-      color: v.color ? String(v.color) : undefined,
-      colorHex: v.colorHex ? String(v.colorHex) : undefined,
-      sizeEu: v.sizeEu ? String(v.sizeEu) : undefined,
-      price: Number(v.price),
-      compareAt: v.compareAt ? Number(v.compareAt) : undefined,
-      image: v.image ? String(v.image) : undefined,
-      onHand: available(Number(v.onHand || 0), Number(v.reserved || 0)),
-    })),
+    variants: active.map((v) => {
+      const sized = {
+        sizeEu: v.sizeEu ? String(v.sizeEu) : undefined,
+        sizePk: v.sizePk ? String(v.sizePk) : undefined,
+        sizeUk: v.sizeUk ? String(v.sizeUk) : undefined,
+        sizeUs: v.sizeUs ? String(v.sizeUs) : undefined,
+      };
+      return {
+        id: String((v._id as { toString(): string })?.toString?.() || v.sku),
+        sku: String(v.sku),
+        color: v.color ? String(v.color) : undefined,
+        colorHex: v.colorHex ? String(v.colorHex) : undefined,
+        size: displaySize(sized, sizeSystem) || undefined,
+        ...sized,
+        price: Number(v.price),
+        compareAt: v.compareAt ? Number(v.compareAt) : undefined,
+        image: v.image ? String(v.image) : undefined,
+        onHand: available(Number(v.onHand || 0), Number(v.reserved || 0)),
+      };
+    }),
   };
 }
 
@@ -262,7 +296,12 @@ function variantElemMatch(
   const elem: Record<string, unknown> = { isActive: { $ne: false } };
   let used = false;
   if (!omit.size && query.size) {
-    elem.sizeEu = query.size;
+    elem.$or = [
+      { sizeEu: query.size },
+      { sizePk: query.size },
+      { sizeUk: query.size },
+      { sizeUs: query.size },
+    ];
     used = true;
   }
   if (!omit.color && query.color) {
@@ -288,12 +327,22 @@ function variantElemMatch(
 }
 
 function variantFits(
-  v: { sizeEu?: string; color?: string; isActive?: boolean; onHand?: number; compareAt?: number; price?: number },
+  v: {
+    sizeEu?: string;
+    sizePk?: string;
+    sizeUk?: string;
+    sizeUs?: string;
+    color?: string;
+    isActive?: boolean;
+    onHand?: number;
+    compareAt?: number;
+    price?: number;
+  },
   query: CatalogQuery,
   omit: { size?: boolean; color?: boolean },
 ) {
   if (v.isActive === false) return false;
-  if (!omit.size && query.size && v.sizeEu !== query.size) return false;
+  if (!omit.size && query.size && !variantMatchesSize(v, query.size)) return false;
   if (!omit.color && query.color && v.color !== query.color) return false;
   if (query.inStock && !(Number(v.onHand) > 0)) return false;
   if (query.onSale && !(Number(v.compareAt) > 0)) return false;
@@ -303,11 +352,14 @@ function variantFits(
 }
 
 async function buildFacets(base: FilterQuery<typeof Product>, query: CatalogQuery) {
-  const rows = await Product.find(base, { variants: 1 }).lean();
+  const rows = await Product.find(base, { variants: 1, sizeSystem: 1 }).lean();
   const sizes = new Set<string>();
   const colors = new Set<string>();
   type Variant = {
     sizeEu?: string;
+    sizePk?: string;
+    sizeUk?: string;
+    sizeUs?: string;
     color?: string;
     isActive?: boolean;
     onHand?: number;
@@ -315,9 +367,11 @@ async function buildFacets(base: FilterQuery<typeof Product>, query: CatalogQuer
     price?: number;
   };
   for (const row of rows) {
+    const system = parseSizeSystem((row as { sizeSystem?: string }).sizeSystem);
     for (const v of (row.variants || []) as Variant[]) {
       if (variantFits(v, query, { color: true }) && v.color) colors.add(v.color);
-      if (variantFits(v, query, { size: true }) && v.sizeEu) sizes.add(v.sizeEu);
+      const label = displaySize(v, system);
+      if (variantFits(v, query, { size: true }) && label) sizes.add(label);
     }
   }
   return {
@@ -399,9 +453,11 @@ export async function updateProduct(id: string, raw: unknown) {
   await assertUniqueSkus(input.variants, id);
   const current = await Product.findById(id);
   if (!current) throw new Error("Product not found");
-  const reservedBySku = new Map(
-    current.variants.map((v: { sku: string; reserved?: number }) => [v.sku, v.reserved || 0]),
-  );
+  const reservedBySku = new Map<string, number>();
+  for (const variant of current.variants) {
+    const row = variant as unknown as { sku?: string; reserved?: number };
+    if (row.sku) reservedBySku.set(row.sku, row.reserved || 0);
+  }
   current.set({
     ...input,
     slug,

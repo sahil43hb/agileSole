@@ -23,6 +23,8 @@ import { AppSelect } from "@/components/ui/app-select";
 import { toast, toastApiError, toastFromResponse } from "@/components/ui/toast";
 import { BusyLabel } from "@/components/ui/spinner";
 import { useCan } from "@/components/admin/access";
+import { useStoreIdentity } from "@/components/store-identity";
+import { defaultProductTypeId, typeSelectOptions } from "@/shared/product-types";
 
 type Row = { eu?: string; pk?: string; uk?: string; us?: string; cm?: string };
 type Chart = {
@@ -47,26 +49,20 @@ const COLS = [
   { key: "cm" as const, label: "CM", hint: "Foot length", desc: "Foot length from heel to longest toe, in centimetres." },
 ];
 
-const TYPES = [
-  { id: "sneaker", label: "Sneaker" },
-  { id: "sandal", label: "Sandal" },
-  { id: "kids", label: "Kids" },
-  { id: "clog", label: "Clog" },
-  { id: "slipper", label: "Slipper" },
-  { id: "slide", label: "Slide" },
-];
-
 const emptyForm = {
   titleEn: "",
   titleUr: "",
   code: "",
-  productType: "sneaker",
+  productType: defaultProductTypeId(),
   rows: [{ eu: "", pk: "", uk: "", us: "", cm: "" }] as Row[],
 };
 
 export default function AdminSizeChartsPage() {
   const access = useCan("size_charts");
+  const { productTypes } = useStoreIdentity();
   const [charts, setCharts] = useState<Chart[]>([]);
+  const extraTypes = charts.map((c) => c.productType);
+  const typeOptions = typeSelectOptions(productTypes, ["kids", ...extraTypes]);
   const [query, setQuery] = useState("");
   const [type, setType] = useState("all");
   const [editing, setEditing] = useState<Chart | "new" | null>(null);
@@ -95,7 +91,7 @@ export default function AdminSizeChartsPage() {
   }, [charts, query, type]);
 
   function openNew() {
-    setForm(emptyForm);
+    setForm({ ...emptyForm, productType: defaultProductTypeId(productTypes) });
     setFormError("");
     setEditing("new");
   }
@@ -105,7 +101,7 @@ export default function AdminSizeChartsPage() {
       titleEn: c.rawTitle?.en || c.title,
       titleUr: c.rawTitle?.ur || "",
       code: c.code,
-      productType: c.productType || "sneaker",
+      productType: c.productType || defaultProductTypeId(productTypes),
       rows: c.rows.length
         ? c.rows.map((r) => ({ ...r, pk: r.pk || r.uk || "" }))
         : [{ eu: "", pk: "", uk: "", us: "", cm: "" }],
@@ -187,7 +183,7 @@ export default function AdminSizeChartsPage() {
           label="Type"
           value={type}
           onChange={setType}
-          options={[{ id: "all", label: "Any type" }, ...TYPES]}
+          options={[{ id: "all", label: "Any type" }, ...typeOptions.map((t) => ({ id: t.value, label: t.label }))]}
         />
         <button
           type="button"
@@ -273,7 +269,7 @@ export default function AdminSizeChartsPage() {
                   <AppSelect
                     value={form.productType}
                     onChange={(productType) => setForm({ ...form, productType })}
-                    options={TYPES.map((t) => ({ value: t.id, label: t.label }))}
+                    options={typeOptions}
                   />
                 </label>
               </div>

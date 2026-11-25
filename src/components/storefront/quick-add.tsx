@@ -5,6 +5,7 @@ import { ShoppingBag, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type { PublicProduct } from "@/server/modules/catalog/product.service";
+import { sizeSystemShort } from "@/shared/size-system";
 import { formatPkr } from "@/shared/money";
 import { useCart } from "./cart-provider";
 import { BusyLabel } from "@/components/ui/spinner";
@@ -75,10 +76,10 @@ function QuickAddSheet({ product, onClose }: { product: PublicProduct; onClose: 
   const [error, setError] = useState("");
   const [pulse, setPulse] = useState(false);
 
-  const selected = product.variants.find((v) => (!color || v.color === color) && v.sizeEu === size);
+  const selected = product.variants.find((v) => (!color || v.color === color) && (v.size || v.sizeEu) === size);
   const sizes = useMemo(() => {
     const forColor = product.variants.filter((v) => !color || v.color === color);
-    return [...new Set(forColor.map((v) => v.sizeEu).filter(Boolean) as string[])].sort(
+    return [...new Set(forColor.map((v) => v.size || v.sizeEu).filter(Boolean) as string[])].sort(
       (a, b) => Number(a) - Number(b),
     );
   }, [product.variants, color]);
@@ -165,7 +166,7 @@ function QuickAddSheet({ product, onClose }: { product: PublicProduct; onClose: 
                   type="button"
                   onClick={() => {
                     setColor(c.name);
-                    const still = product.variants.some((v) => v.color === c.name && v.sizeEu === size && v.onHand > 0);
+                    const still = product.variants.some((v) => v.color === c.name && (v.size || v.sizeEu) === size && v.onHand > 0);
                     if (!still) setSize("");
                   }}
                   className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ring-1 ${
@@ -181,10 +182,10 @@ function QuickAddSheet({ product, onClose }: { product: PublicProduct; onClose: 
         ) : null}
 
         <div className={`mt-5 ${pulse ? "rounded-2xl ring-2 ring-brand ring-offset-2" : ""}`}>
-          <p className="text-xs font-medium text-ink-muted">{t("euSize")}</p>
+          <p className="text-xs font-medium text-ink-muted">{t("sizeSystem", { system: sizeSystemShort(product.sizeSystem) })}</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {sizes.map((s) => {
-              const variant = product.variants.find((v) => v.sizeEu === s && (!color || v.color === color));
+              const variant = product.variants.find((v) => (v.size || v.sizeEu) === s && (!color || v.color === color));
               const ok = (variant?.onHand || 0) > 0;
               return (
                 <button

@@ -2,10 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Banknote, Heart, RefreshCw, Share2, Star, Truck } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { formatPkr } from "@/shared/money";
 import type { PublicProduct } from "@/server/modules/catalog/product.service";
+import { sizeSystemShort } from "@/shared/size-system";
+import { useStoreIdentity } from "@/components/store-identity";
+import { productTypeLabel } from "@/shared/product-types";
 import { useWishlist } from "./wishlist-provider";
 import { useCart } from "./cart-provider";
 import { trackView } from "./recently-viewed";
@@ -26,6 +29,8 @@ export function ProductDetail({
   const t = useTranslations("pdp");
   const c = useTranslations("common");
   const n = useTranslations("nav");
+  const locale = useLocale();
+  const { productTypes } = useStoreIdentity();
   const genderLabel =
     product.gender === "men" || product.gender === "women" || product.gender === "kids"
       ? n(product.gender)
@@ -44,7 +49,7 @@ export function ProductDetail({
   }, [product.slug]);
 
   const gallery = product.images.length ? product.images : [];
-  const selected = product.variants.find((v) => v.color === color && v.sizeEu === size);
+  const selected = product.variants.find((v) => v.color === color && (v.size || v.sizeEu) === size);
   const price = selected?.price ?? product.price;
   const compareAt = selected?.compareAt ?? product.compareAt;
   const activeImage = selected?.image && gallery.includes(selected.image) ? selected.image : selected?.image;
@@ -81,7 +86,7 @@ export function ProductDetail({
 
         <div className="lg:sticky lg:top-24">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-muted">
-            {genderLabel} · {product.type}
+            {genderLabel} · {productTypeLabel(product.type, productTypes, locale)}
           </p>
           <div className="mt-2 flex items-start justify-between gap-3">
             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{product.title}</h1>
@@ -135,7 +140,7 @@ export function ProductDetail({
                     type="button"
                     onClick={() => {
                       setColor(c.name);
-                      const still = product.variants.some((v) => v.color === c.name && v.sizeEu === size && v.onHand > 0);
+                      const still = product.variants.some((v) => v.color === c.name && (v.size || v.sizeEu) === size && v.onHand > 0);
                       if (!still) setSize("");
                     }}
                     className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ring-1 transition ${
@@ -154,7 +159,7 @@ export function ProductDetail({
 
           <div id="size-picker" className={`mt-6 rounded-[1.2rem] ${sizePulse ? "ring-2 ring-brand ring-offset-4" : ""}`}>
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-ink-muted">{t("euSize")}</p>
+              <p className="text-xs font-medium text-ink-muted">{t("sizeSystem", { system: sizeSystemShort(product.sizeSystem) })}</p>
               {chart ? (
                 <button type="button" className="text-sm font-medium text-brand-dark hover:underline" onClick={() => setGuide(true)}>
                   {t("sizeGuide")}
@@ -163,7 +168,7 @@ export function ProductDetail({
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {product.sizes.map((s) => {
-                const variant = product.variants.find((v) => v.sizeEu === s && (!color || v.color === color));
+                const variant = product.variants.find((v) => (v.size || v.sizeEu) === s && (!color || v.color === color));
                 const available = (variant?.onHand || 0) > 0;
                 return (
                   <button

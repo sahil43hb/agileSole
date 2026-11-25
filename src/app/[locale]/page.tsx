@@ -64,6 +64,7 @@ export default async function HomePage({
       bestsellers={data?.bestsellers || []}
       reviews={data?.reviews || []}
       faqs={faqItems}
+      productTypes={settings.productTypes}
       t={{
         kicker: t("hero.kicker", { name: storeName, city: cityLabel }),
         title: t("hero.title"),

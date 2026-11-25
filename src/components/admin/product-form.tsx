@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, ExternalLink, ImagePlus, Plus, Sparkles, Trash2, X } from "lucide-react";
@@ -10,6 +10,24 @@ import { AppSelect } from "@/components/ui/app-select";
 import { SwitchTrack } from "@/components/ui/switch";
 import { toast, toastApiError } from "@/components/ui/toast";
 import { useCan } from "@/components/admin/access";
+import { useStoreIdentity } from "@/components/store-identity";
+import { defaultProductTypeId, openFootwearIds, typeSelectOptions } from "@/shared/product-types";
+import {
+  DEFAULT_SIZE_CHART,
+  DEFAULT_SIZE_SYSTEM,
+  SIZE_SYSTEM_OPTIONS,
+  defaultChartCode,
+  displaySize,
+  findSizeRow,
+  mappedSizes,
+  orderSizes,
+  parseSizeSystem,
+  remapSizeValue,
+  sizesForSystem,
+  sizeSystemShort,
+  type SizeRow,
+  type SizeSystem,
+} from "@/shared/size-system";
 
 type Loc = { en: string; ur: string };
 type Variant = {
@@ -17,6 +35,10 @@ type Variant = {
   color?: string;
   colorHex?: string;
   sizeEu?: string;
+  sizePk?: string;
+  sizeUk?: string;
+  sizeUs?: string;
+  sizeCm?: string;
   price: number;
   compareAt?: number | null;
   cost?: number | null;
@@ -25,6 +47,12 @@ type Variant = {
 };
 
 type GridCell = { price: string; compareAt: string; cost: string; onHand: string; sku: string };
+
+function splitKey(key: string): [string, string] {
+  const i = key.indexOf("|");
+  if (i < 0) return [key, ""];
+  return [key.slice(0, i), key.slice(i + 1)];
+}
 
 function money(n: number) {
   return `Rs ${Math.round(n).toLocaleString("en-PK")}`;
@@ -44,13 +72,10 @@ export type ProductFormValue = {
   categoryIds?: string[];
   images?: string[];
   sizeChartCode?: string;
+  sizeSystem?: string;
   material?: string;
   variants?: Variant[];
 };
-
-const SIZES_MEN = ["40", "41", "42", "43", "44", "45"];
-const SIZES_WOMEN = ["36", "37", "38", "39", "40", "41"];
-const SIZES_KIDS = ["28", "30", "32", "34", "36"];
 
 const field =
   "mt-1.5 h-11 w-full rounded-xl border border-[#e7ebe8] bg-[#f7f8f7] px-3.5 text-sm text-ink outline-none transition placeholder:text-ink-faint focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20";
@@ -68,23 +93,29 @@ export function ProductForm({
   initial?: ProductFormValue;
   brands: { id: string; label: string }[];
   categories: { id: string; label: string; parentId: string | null }[];
-  sizeCharts: { code: string; title: string }[];
+  sizeCharts: { code: string; title: string; productType?: string; rows?: SizeRow[] }[];
 }) {
   const router = useRouter();
   const access = useCan("products");
+  const { productTypes } = useStoreIdentity();
+  const typeOptions = typeSelectOptions(productTypes, initial?.type ? [initial.type] : []);
+  const openFootwear = useMemo(() => openFootwearIds(productTypes), [productTypes]);
   const canSave = initial?._id ? access.update : access.create;
   const [title, setTitle] = useState<Loc>(initial?.title || { en: "", ur: "" });
   const [description, setDescription] = useState<Loc>(initial?.description || { en: "", ur: "" });
   const [fitNote, setFitNote] = useState<Loc>(initial?.fitNote || { en: "", ur: "" });
   const [slug, setSlug] = useState(initial?.slug || "");
-  const [gender, setGender] = useState(initial?.gender || "men");
-  const [type, setType] = useState(initial?.type || "sneaker");
+  const [gender, setGender] = useState(initial?.gender || "kids");
+  const [type, setType] = useState(initial?.type || defaultProductTypeId(productTypes));
   const [status, setStatus] = useState(initial?.status || "active");
   const [featured, setFeatured] = useState(Boolean(initial?.featured));
   const [brandId, setBrandId] = useState(initial?.brandId || "");
   const [categoryIds, setCategoryIds] = useState<string[]>(initial?.categoryIds || []);
   const [material, setMaterial] = useState(initial?.material || "");
-  const [sizeChartCode, setSizeChartCode] = useState(initial?.sizeChartCode || "");
+  const [sizeChartCode, setSizeChartCode] = useState(initial?.sizeChartCode || (initial?._id ? "" : DEFAULT_SIZE_CHART));
+  const [sizeSystem, setSizeSystem] = useState<SizeSystem>(
+    parseSizeSystem(initial?.sizeSystem, DEFAULT_SIZE_SYSTEM),
+  );
   const [images, setImages] = useState<string[]>(initial?.images || []);
   const [imageUrl, setImageUrl] = useState("");
   const [colors, setColors] = useState<{ name: string; hex: string }[]>(() => {
@@ -94,15 +125,18 @@ export function ProductForm({
     }
     return map.size ? [...map.entries()].map(([name, hex]) => ({ name, hex })) : [{ name: "Green", hex: "#1FA64A" }];
   });
-  const defaultSizes = gender === "kids" ? SIZES_KIDS : gender === "women" ? SIZES_WOMEN : SIZES_MEN;
   const [sizes, setSizes] = useState<string[]>(() => {
-    const set = new Set((initial?.variants || []).map((v) => v.sizeEu).filter(Boolean) as string[]);
-    return set.size ? [...set] : defaultSizes;
+    const system = parseSizeSystem(initial?.sizeSystem);
+    const set = new Set(
+      (initial?.variants || []).map((v) => displaySize(v, system)).filter(Boolean),
+    );
+    return set.size ? [...set] : [];
   });
   const [grid, setGrid] = useState<Record<string, GridCell>>(() => {
     const next: Record<string, GridCell> = {};
     for (const v of initial?.variants || []) {
-      const key = `${v.color || ""}|${v.sizeEu || ""}`;
+      const system = parseSizeSystem(initial?.sizeSystem);
+      const key = `${v.color || ""}|${displaySize(v, system)}`;
       next[key] = {
         price: String(v.price || ""),
         compareAt: String(v.compareAt || ""),
@@ -118,7 +152,52 @@ export function ProductForm({
   const [saving, setSaving] = useState(false);
 
   const keys = useMemo(() => colors.flatMap((c) => sizes.map((s) => `${c.name}|${s}`)), [colors, sizes]);
-  const sizeOptions = gender === "kids" ? SIZES_KIDS : gender === "women" ? SIZES_WOMEN : SIZES_MEN;
+  const activeChart = useMemo(() => {
+    if (sizeChartCode) return sizeCharts.find((c) => c.code === sizeChartCode);
+    return sizeCharts.find((c) => c.code === defaultChartCode(gender, type, openFootwear));
+  }, [sizeCharts, sizeChartCode, gender, type, openFootwear]);
+  const chartRows = activeChart?.rows || [];
+  const sizeOptions = sizesForSystem(chartRows, sizeSystem, gender);
+  const sizeOptionKey = sizeOptions.join("|");
+  const systemShort = sizeSystemShort(sizeSystem);
+
+  function rewriteGrid(mapSize: (size: string) => string) {
+    setGrid((prev) => {
+      const next: Record<string, GridCell> = {};
+      for (const [key, val] of Object.entries(prev)) {
+        const [color, size] = splitKey(key);
+        next[`${color}|${mapSize(size)}`] = val;
+      }
+      return next;
+    });
+  }
+
+  function changeSizeSystem(next: SizeSystem) {
+    if (next === sizeSystem) return;
+    const mapped = sizes
+      .map((s) => remapSizeValue(s, sizeSystem, next, chartRows))
+      .filter(Boolean);
+    const unique = orderSizes(mapped, chartRows, next, gender);
+    rewriteGrid((s) => remapSizeValue(s, sizeSystem, next, chartRows) || s);
+    setSizeSystem(next);
+    setSizes(unique.length ? unique : sizesForSystem(chartRows, next, gender));
+  }
+
+  useEffect(() => {
+    setSizes((prev) => {
+      if (!sizeOptions.length) return prev;
+      if (!prev.length) return sizeOptions;
+      const keep = orderSizes(
+        prev.filter((s) => sizeOptions.includes(s)),
+        chartRows,
+        sizeSystem,
+        gender,
+      );
+      return keep.length ? keep : sizeOptions;
+    });
+    // sizeOptionKey is the chart/country list; clicking a size must not re-seed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sizeOptionKey]);
 
   function cell(key: string): GridCell {
     return grid[key] || { price: "4990", compareAt: "", cost: "", onHand: "5", sku: "" };
@@ -132,12 +211,13 @@ export function ProductForm({
       for (const s of sizes) {
         const key = `${c.name}|${s}`;
         const prev = next[key];
+        const eu = mappedSizes(findSizeRow(chartRows, sizeSystem, s), s, sizeSystem).sizeEu || s;
         next[key] = {
           price: prev?.price || "4990",
           compareAt: prev?.compareAt || "",
           cost: prev?.cost || "",
           onHand: prev?.onHand || "5",
-          sku: prev?.sku || `${base}-${colorCode}-${s}`,
+          sku: prev?.sku || `${base}-${colorCode}-${eu}`,
         };
       }
     }
@@ -162,14 +242,16 @@ export function ProductForm({
     setError("");
     setSaving(true);
     const variants: Variant[] = keys.map((key) => {
-      const [color, sizeEu] = key.split("|");
+      const [color, size] = splitKey(key);
       const c = colors.find((x) => x.name === color);
       const cellVal = cell(key);
+      const row = findSizeRow(chartRows, sizeSystem, size);
+      const mapped = mappedSizes(row, size, sizeSystem);
       return {
-        sku: cellVal.sku || `${slugify(title.en)}-${color}-${sizeEu}`,
+        sku: cellVal.sku || `${slugify(title.en)}-${color}-${mapped.sizeEu || size}`,
         color,
         colorHex: c?.hex,
-        sizeEu,
+        ...mapped,
         price: Number(cellVal.price || 0),
         compareAt: cellVal.compareAt ? Number(cellVal.compareAt) : null,
         cost: cellVal.cost ? Number(cellVal.cost) : null,
@@ -190,6 +272,7 @@ export function ProductForm({
       categoryIds,
       images,
       sizeChartCode: sizeChartCode || null,
+      sizeSystem,
       material,
       variants,
     };
@@ -247,7 +330,7 @@ export function ProductForm({
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0 space-y-6">
+        <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
           <section className={card}>
             <h2 className="text-sm font-semibold tracking-tight">Details</h2>
             <label className={label}>
@@ -286,7 +369,7 @@ export function ProductForm({
                   </span>
                 </button>
               ))}
-              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[var(--admin-line)] bg-[#f7f8f7] text-ink-muted hover:border-brand hover:text-brand-dark">
+              <label className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border border-dashed border-[var(--admin-line)] bg-[#f7f8f7] text-ink-muted hover:border-brand hover:text-brand-dark">
                 <ImagePlus className="h-5 w-5" />
                 <span className="text-xs font-medium">Upload</span>
                 <input
@@ -376,25 +459,28 @@ export function ProductForm({
               </button>
             </div>
             <div>
-              <p className="mb-2 text-[13px] font-medium text-ink-muted">EU sizes</p>
+              <p className="mb-2 text-[13px] font-medium text-ink-muted">{systemShort} sizes</p>
               <div className="flex flex-wrap gap-2">
                 {sizeOptions.map((s) => {
                   const on = sizes.includes(s);
                   return (
-                    <label
+                    <button
                       key={s}
-                      className={`flex h-10 min-w-10 cursor-pointer items-center justify-center rounded-xl border px-3 text-sm font-medium ${
+                      type="button"
+                      aria-pressed={on}
+                      className={`flex h-10 min-w-10 items-center justify-center rounded-xl border px-3 text-sm font-medium ${
                         on ? "border-ink bg-ink text-white" : "border-[var(--admin-line)] bg-white text-ink-muted"
                       }`}
+                      onClick={() =>
+                        setSizes(
+                          on
+                            ? sizes.filter((x) => x !== s)
+                            : orderSizes([...sizes, s], chartRows, sizeSystem, gender),
+                        )
+                      }
                     >
-                      <input
-                        type="checkbox"
-                        className="sr-only"
-                        checked={on}
-                        onChange={(e) => setSizes(e.target.checked ? [...sizes, s].sort() : sizes.filter((x) => x !== s))}
-                      />
                       {s}
-                    </label>
+                    </button>
                   );
                 })}
               </div>
@@ -431,7 +517,7 @@ export function ProductForm({
                 <thead>
                   <tr>
                     <th>Color</th>
-                    <th>EU</th>
+                    <th>{systemShort}</th>
                     <th>SKU</th>
                     <th>Price</th>
                     <th>Cost</th>
@@ -442,7 +528,7 @@ export function ProductForm({
                 </thead>
                 <tbody>
                   {keys.map((key) => {
-                    const [color, size] = key.split("|");
+                    const [color, size] = splitKey(key);
                     const val = cell(key);
                     const price = Number(val.price || 0);
                     const cost = Number(val.cost || 0);
@@ -529,7 +615,10 @@ export function ProductForm({
               Gender
               <AppSelect
                 value={gender}
-                onChange={setGender}
+                onChange={(next) => {
+                  setGender(next);
+                  setSizeChartCode(defaultChartCode(next, type, openFootwear));
+                }}
                 options={[
                   { value: "men", label: "Men" },
                   { value: "women", label: "Women" },
@@ -542,14 +631,11 @@ export function ProductForm({
               Type
               <AppSelect
                 value={type}
-                onChange={setType}
-                options={[
-                  { value: "sneaker", label: "Sneaker" },
-                  { value: "sandal", label: "Sandal" },
-                  { value: "slide", label: "Slide" },
-                  { value: "clog", label: "Clog" },
-                  { value: "slipper", label: "Slipper" },
-                ]}
+                onChange={(next) => {
+                  setType(next);
+                  setSizeChartCode(defaultChartCode(gender, next, openFootwear));
+                }}
+                options={typeOptions}
               />
             </label>
             <button
@@ -579,12 +665,23 @@ export function ProductForm({
               />
             </label>
             <label className={label}>
+              Size country
+              <AppSelect
+                value={sizeSystem}
+                onChange={(v) => changeSizeSystem(parseSizeSystem(v))}
+                options={SIZE_SYSTEM_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              />
+            </label>
+            <label className={label}>
               Size chart
               <AppSelect
-                value={sizeChartCode}
+                value={sizeChartCode || activeChart?.code || DEFAULT_SIZE_CHART}
                 onChange={setSizeChartCode}
-                options={[{ value: "", label: "Auto" }, ...sizeCharts.map((c) => ({ value: c.code, label: c.title }))]}
+                options={sizeCharts.map((c) => ({ value: c.code, label: c.title }))}
               />
+              <span className="mt-1 block text-xs font-normal text-ink-faint">
+                Size chips follow this chart in {systemShort} order.
+              </span>
             </label>
             <label className={label}>
               Material
