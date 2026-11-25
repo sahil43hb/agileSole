@@ -8,6 +8,7 @@ export { Brand } from "./brand";
 export { Collection } from "./collection";
 export { SizeChart } from "./size-chart";
 export { Product } from "./product";
+export { Media } from "./media";
 export { Review } from "./review";
 export { Newsletter } from "./newsletter";
 export { Cart } from "./cart";
