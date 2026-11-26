@@ -88,6 +88,20 @@ export function ProductDetail({
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-muted">
             {genderLabel} · {productTypeLabel(product.type, productTypes, locale)}
           </p>
+          {product.brandLogo || product.brandName ? (
+            <Link
+              href={product.brandSlug ? `/brands/${product.brandSlug}` : "/brands"}
+              className="mt-3 inline-flex items-center gap-2.5"
+            >
+              {product.brandLogo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={product.brandLogo} alt="" className="h-8 w-auto max-w-[120px] object-contain object-left" />
+              ) : null}
+              {product.brandName ? (
+                <span className="text-sm font-medium text-ink-muted">{product.brandName}</span>
+              ) : null}
+            </Link>
+          ) : null}
           <div className="mt-2 flex items-start justify-between gap-3">
             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{product.title}</h1>
             <button

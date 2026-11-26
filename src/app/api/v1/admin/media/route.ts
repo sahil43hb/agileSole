@@ -9,6 +9,7 @@ export async function POST(request: Request) {
     ["settings", "update"],
     ["homepage", "update"],
     ["brands", "update"],
+    ["brands", "create"],
   ]);
   if (gate.response) return gate.response;
   try {

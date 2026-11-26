@@ -54,7 +54,7 @@ export default function ProductsPage() {
   const [query, setQuery] = useState("");
   const [genders, setGenders] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<string[]>([]);
-  const [pending, setPending] = useState<{ row: Row; action: "inactive" | "delete" } | null>(null);
+  const [pending, setPending] = useState<{ row: Row; action: "inactive" | "archive" | "delete" } | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function load() {
@@ -85,7 +85,8 @@ export default function ProductsPage() {
       body: JSON.stringify({ status }),
     });
     setBusy(false);
-    const label = status === "archived" ? "Product deleted" : status === "active" ? "Product activated" : "Product set inactive";
+    const label =
+      status === "archived" ? "Product archived" : status === "active" ? "Product activated" : "Product set inactive";
     const result = await toastFromResponse(res, "Could not update product", label);
     if (!result.ok) {
       setPending(null);
@@ -93,6 +94,15 @@ export default function ProductsPage() {
     }
     setPending(null);
     await load();
+  }
+
+  async function destroy(id: string) {
+    setBusy(true);
+    const res = await fetch(`/api/v1/admin/products/${id}`, { method: "DELETE" });
+    setBusy(false);
+    const result = await toastFromResponse(res, "Could not delete product", "Product permanently deleted");
+    setPending(null);
+    if (result.ok) await load();
   }
 
   return (
@@ -185,7 +195,12 @@ export default function ProductsPage() {
                         Activate
                       </button>
                     ) : null}
-                    {access.delete && p.status !== "archived" ? (
+                    {access.update && p.status !== "archived" ? (
+                      <button type="button" className={rowBtn} onClick={() => setPending({ row: p, action: "archive" })}>
+                        Archive
+                      </button>
+                    ) : null}
+                    {access.delete && p.status === "archived" ? (
                       <button type="button" className={rowBtnDanger} onClick={() => setPending({ row: p, action: "delete" })}>
                         Delete
                       </button>
@@ -201,19 +216,33 @@ export default function ProductsPage() {
 
       <ConfirmDialog
         open={Boolean(pending)}
-        title={pending?.action === "delete" ? "Delete this product?" : "Make this product inactive?"}
+        title={
+          pending?.action === "delete"
+            ? "Permanently delete this product?"
+            : pending?.action === "archive"
+              ? "Archive this product?"
+              : "Make this product inactive?"
+        }
         body={
           pending?.action === "delete"
-            ? `${pending.row.title.en} will be archived and leave the store catalog.`
-            : `${pending?.row.title.en} will be hidden from the store. You can activate it again later.`
+            ? `${pending.row.title.en} will be removed from the catalog for good. Past orders keep their history.`
+            : pending?.action === "archive"
+              ? `${pending.row.title.en} will leave the store but stay in this list. You can activate it later.`
+              : `${pending?.row.title.en} will be hidden from the store. You can activate it again later.`
         }
-        confirmLabel={pending?.action === "delete" ? "Delete" : "Set inactive"}
+        confirmLabel={
+          pending?.action === "delete" ? "Delete forever" : pending?.action === "archive" ? "Archive" : "Set inactive"
+        }
         danger={pending?.action === "delete"}
         busy={busy}
         onCancel={() => setPending(null)}
         onConfirm={() => {
           if (!pending) return;
-          void setStatus(pending.row.id, pending.action === "delete" ? "archived" : "unlisted");
+          if (pending.action === "delete") {
+            void destroy(pending.row.id);
+            return;
+          }
+          void setStatus(pending.row.id, pending.action === "archive" ? "archived" : "unlisted");
         }}
       />
     </div>

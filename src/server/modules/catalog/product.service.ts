@@ -1,7 +1,7 @@
 import { Types, FilterQuery } from "mongoose";
 import { z } from "zod";
 import { connectDb } from "@/server/db/connect";
-import { Category, Product } from "@/server/models";
+import { Brand, Cart, Category, Collection, Media, Product, Review } from "@/server/models";
 import { pickLocale } from "@/server/lib/localized";
 import { slugify } from "@/shared/money";
 import { asDoc } from "@/server/lib/lean";
@@ -68,6 +68,9 @@ export type PublicProduct = {
   sizes: string[];
   inStock: boolean;
   percentOff?: number;
+  brandName?: string;
+  brandSlug?: string;
+  brandLogo?: string;
   variants: {
     id: string;
     sku: string;
@@ -173,20 +176,53 @@ function toPublic(doc: Record<string, unknown>, locale: string): PublicProduct {
   };
 }
 
+async function withBrands(rows: Record<string, unknown>[], locale: string): Promise<PublicProduct[]> {
+  const ids = [
+    ...new Set(
+      rows
+        .map((row) => row.brandId)
+        .filter(Boolean)
+        .map((id) => String(id)),
+    ),
+  ];
+  const brands = ids.length
+    ? await Brand.find({ _id: { $in: ids } })
+        .lean()
+        .then((list) => list as unknown as Record<string, unknown>[])
+    : [];
+  const map = new Map(
+    brands.map((b) => [
+      String((b._id as { toString(): string }).toString()),
+      {
+        name: pickLocale(b.name as { en: string; ur: string }, locale),
+        slug: String(b.slug || ""),
+        logo: b.logo ? String(b.logo) : undefined,
+      },
+    ]),
+  );
+  return rows.map((row) => {
+    const product = toPublic(row, locale);
+    const brand = row.brandId ? map.get(String(row.brandId)) : undefined;
+    if (!brand) return product;
+    return { ...product, brandName: brand.name, brandSlug: brand.slug, brandLogo: brand.logo };
+  });
+}
+
 export async function listFeatured(locale: string, limit = 8) {
   await connectDb();
   const rows = await Product.find({ status: "active", featured: true })
     .sort({ createdAt: -1 })
     .limit(limit)
     .lean();
-  return rows.map((row) => toPublic(row as never, locale));
+  return withBrands(rows as unknown as Record<string, unknown>[], locale);
 }
 
 export async function getBySlug(slug: string, locale: string) {
   await connectDb();
   const row = await Product.findOne({ slug, status: { $in: ["active", "unlisted"] } }).lean();
   if (!row) return null;
-  return toPublic(row as never, locale);
+  const [product] = await withBrands([row as unknown as Record<string, unknown>], locale);
+  return product;
 }
 
 export type CatalogQuery = {
@@ -278,7 +314,7 @@ export async function listCatalog(query: CatalogQuery) {
     buildFacets(facetFilter, query),
   ]);
 
-  const products = rows.map((row) => toPublic(row as never, locale));
+  const products = await withBrands(rows as unknown as Record<string, unknown>[], locale);
 
   return {
     products,
@@ -482,9 +518,30 @@ export async function setProductStatus(id: string, status: "draft" | "active" | 
 
 export async function deleteProduct(id: string) {
   await connectDb();
-  const row = await Product.findByIdAndUpdate(id, { status: "archived" }, { new: true });
+  const row = await Product.findById(id).lean<{
+    _id: { toString(): string };
+    status?: string;
+    variants?: Array<{ sku?: string }>;
+    images?: string[];
+  } | null>();
   if (!row) throw new Error("Product not found");
-  return { id, status: row.status };
+  if (row.status !== "archived") throw new Error("Archive the product before deleting it");
+  const productId = row._id;
+  const skus = (row.variants || []).map((v) => v.sku).filter((sku): sku is string => Boolean(sku));
+  const mediaIds = (row.images || [])
+    .map((url) => String(url).match(/\/api\/v1\/media\/([a-f0-9]{24})/i)?.[1])
+    .filter((mediaId): mediaId is string => Boolean(mediaId));
+
+  await Product.findByIdAndDelete(productId);
+  await Collection.updateMany({}, { $pull: { productIds: productId } });
+  await Review.deleteMany({ productId });
+  if (skus.length) {
+    await Cart.updateMany({}, { $pull: { items: { sku: { $in: skus } } } });
+  }
+  if (mediaIds.length) {
+    await Media.deleteMany({ _id: { $in: mediaIds } });
+  }
+  return { id: String(productId), deleted: true };
 }
 
 export async function countCatalog() {
@@ -501,9 +558,8 @@ export async function listBySlugs(slugs: string[], locale: string) {
   const unique = [...new Set(slugs.filter(Boolean))];
   if (!unique.length) return [];
   const rows = await Product.find({ slug: { $in: unique }, status: { $in: ["active", "unlisted"] } }).lean();
-  const map = new Map(
-    rows.map((row) => [String((row as unknown as { slug: string }).slug), toPublic(row as never, locale)]),
-  );
+  const products = await withBrands(rows as unknown as Record<string, unknown>[], locale);
+  const map = new Map(products.map((product) => [product.slug, product]));
   return unique.map((slug) => map.get(slug)).filter(Boolean) as PublicProduct[];
 }
 
@@ -519,7 +575,7 @@ export async function listRelated(slug: string, locale: string, limit = 4) {
   })
     .limit(limit)
     .lean();
-  return related.map((item) => toPublic(item as never, locale));
+  return withBrands(related as unknown as Record<string, unknown>[], locale);
 }
 
 export async function suggestSearch(q: string, locale: string) {

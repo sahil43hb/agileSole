@@ -77,6 +77,12 @@ export function ProductCard({
           </div>
         </div>
         <div className={`px-0.5 ${compact ? "mt-2" : "mt-3.5"}`}>
+          {product.brandLogo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={product.brandLogo} alt="" className="mb-1.5 h-5 w-auto max-w-[88px] object-contain object-left" />
+          ) : product.brandName ? (
+            <p className="mb-0.5 text-[11px] uppercase tracking-[0.12em] text-ink-muted">{product.brandName}</p>
+          ) : null}
           <p className={`font-medium tracking-tight transition group-hover:text-brand-dark ${compact ? "text-[13px]" : "text-sm"}`}>{product.title}</p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-sm">
             <span>{formatPkr(product.price)}</span>

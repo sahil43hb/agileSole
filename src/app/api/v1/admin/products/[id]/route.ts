@@ -51,6 +51,10 @@ export async function DELETE(_: Request, ctx: Ctx) {
     const { id } = await ctx.params;
     return ok(await deleteProduct(id));
   } catch (err) {
+    const message = errorMessage(err, "Could not delete");
+    if (message.includes("Archive") || message.includes("not found")) {
+      return fail("VALIDATION", message, 422);
+    }
     return fromError(err);
   }
 }

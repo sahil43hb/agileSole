@@ -124,6 +124,7 @@ export async function getBrandBySlug(slug: string, locale = "en") {
     slug: b.slug,
     name: pickLocale(b.name as { en: string; ur: string }, locale),
     description: pickLocale(b.description as { en: string; ur: string } | undefined, locale),
+    logo: b.logo ? String(b.logo) : undefined,
   };
 }
 

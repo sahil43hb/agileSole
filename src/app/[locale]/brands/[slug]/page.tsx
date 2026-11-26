@@ -35,6 +35,7 @@ export default async function BrandPage({
       query={filterQueryRecord(sp)}
       crumbs={[{ href: "/", label: n("home") }, { href: "/brands", label: n("brands") }, { label: brand.name }]}
       heroImage={slug === "agile-sole" ? "/catalog/banner-house-brand.jpg" : "/catalog/banner-brands.jpg"}
+      heroLogo={brand.logo}
     />
   );
 }

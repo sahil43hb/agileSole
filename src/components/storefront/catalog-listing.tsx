@@ -20,6 +20,7 @@ export async function CatalogListing({
   query,
   crumbs,
   heroImage,
+  heroLogo,
   subcategories,
 }: {
   title: string;
@@ -33,6 +34,7 @@ export async function CatalogListing({
   query?: Record<string, string | undefined>;
   crumbs?: { href?: string; label: string }[];
   heroImage?: string;
+  heroLogo?: string;
   subcategories?: { href: string; label: string }[];
 }) {
   function hrefFor(nextPage: number, extra?: Record<string, string | undefined>) {
@@ -69,6 +71,12 @@ export async function CatalogListing({
           <div className="absolute inset-0 bg-gradient-to-r from-[#0c1610]/75 via-[#0c1610]/35 to-transparent" />
           <div className="relative mx-auto flex min-h-[280px] max-w-[90rem] flex-col justify-end px-4 py-10 md:min-h-[380px] md:px-8 md:py-14">
             {crumbs?.length ? <Breadcrumbs items={crumbs} tone="dark" /> : null}
+            {heroLogo ? (
+              <div className="mt-4 inline-flex max-w-[220px] items-center rounded-2xl bg-white/95 px-4 py-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={heroLogo} alt="" className="h-12 w-auto max-w-[180px] object-contain object-left" />
+              </div>
+            ) : null}
             <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">{title}</h1>
             {description ? <p className="mt-3 max-w-xl text-sm text-white/75 md:text-base">{description}</p> : null}
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Plus, RotateCcw } from "lucide-react";
+import { ImagePlus, Plus, RotateCcw, X } from "lucide-react";
 import {
   AdminModal,
   AdminModalBody,
@@ -59,6 +59,7 @@ export default function BrandsPage() {
   const [formError, setFormError] = useState("");
   const [pending, setPending] = useState<{ row: Brand; action: "inactive" | "delete" } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [listError, setListError] = useState("");
 
   async function load() {
@@ -98,6 +99,22 @@ export default function BrandsPage() {
     });
     setFormError("");
     setEditing(row);
+  }
+
+  async function uploadLogo(file: File) {
+    setFormError("");
+    setUploading(true);
+    const body = new FormData();
+    body.set("file", file);
+    const res = await fetch("/api/v1/admin/media", { method: "POST", body });
+    const json = await res.json();
+    setUploading(false);
+    if (!json.ok) {
+      toastApiError(json, "Could not upload logo");
+      return;
+    }
+    setForm((prev) => ({ ...prev, logo: json.data.url as string }));
+    toast.success("Logo uploaded");
   }
 
   async function save(e: FormEvent) {
@@ -300,10 +317,53 @@ export default function BrandsPage() {
                 Description
                 <textarea className={area} rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Optional" />
               </label>
-              <label className="block text-[13px] font-medium text-ink-muted">
-                Logo URL
-                <input className={field} value={form.logo} onChange={(e) => setForm({ ...form, logo: e.target.value })} placeholder="https://… or /uploads/…" />
-              </label>
+              <div>
+                <p className="text-[13px] font-medium text-ink-muted">Logo</p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-4">
+                  <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border border-[#e7ebe8] bg-[#f7f8f7] p-2">
+                    {form.logo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={form.logo} alt="" className="max-h-full max-w-full object-contain" />
+                    ) : (
+                      <ImagePlus className="h-6 w-6 text-ink-faint" />
+                    )}
+                  </div>
+                  <div className="min-w-[12rem] flex-1 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      <label className="relative inline-flex h-10 cursor-pointer items-center overflow-hidden rounded-xl border border-[#e7ebe8] bg-white px-4 text-sm font-medium">
+                        {uploading ? "Uploading…" : "Upload logo"}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          className="absolute inset-0 cursor-pointer opacity-0"
+                          disabled={uploading}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = "";
+                            if (file) void uploadLogo(file);
+                          }}
+                        />
+                      </label>
+                      {form.logo ? (
+                        <button
+                          type="button"
+                          className="inline-flex h-10 items-center gap-1 rounded-xl border border-[#e7ebe8] bg-white px-3 text-sm text-ink-muted"
+                          onClick={() => setForm({ ...form, logo: "" })}
+                        >
+                          <X className="h-4 w-4" />
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
+                    <input
+                      className={`${field} mt-0`}
+                      value={form.logo}
+                      onChange={(e) => setForm({ ...form, logo: e.target.value })}
+                      placeholder="Or paste a logo URL"
+                    />
+                  </div>
+                </div>
+              </div>
               <div>
                 <p className="text-[13px] font-medium text-ink-muted">Visibility</p>
                 <button
